@@ -15,8 +15,9 @@ from __future__ import annotations
 import logging
 import re
 from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from aisafepy.adapt.sources import FailureRecord
 
@@ -114,7 +115,9 @@ def _tfidf_cluster_fallback(texts: list[str], min_cluster_size: int) -> list[int
     sentence-transformer + HDBSCAN path but always works."""
     try:
         from sklearn.cluster import AgglomerativeClustering  # type: ignore[import-not-found]
-        from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore[import-not-found]
+        from sklearn.feature_extraction.text import (
+            TfidfVectorizer,  # type: ignore[import-not-found]
+        )
     except ImportError:
         # Last-resort: bucket by first significant word.
         labels: list[int] = []

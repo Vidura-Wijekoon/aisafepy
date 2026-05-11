@@ -51,7 +51,7 @@ __all__ = [
 _LAZY_SUBMODULES = {"flow", "stream", "adapt", "contrib"}
 
 if TYPE_CHECKING:  # pragma: no cover
-    from aisafepy import adapt, contrib, flow, stream  # noqa: F401
+    from aisafepy import adapt, contrib, flow, stream
 
 
 def __getattr__(name: str) -> Any:

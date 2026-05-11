@@ -19,8 +19,9 @@ patterns. Extending the lattice is a future-version concern.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Generic, Iterable, Literal, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -53,7 +54,7 @@ class Tainted(Generic[T]):
 
     # ---- combinators ---------------------------------------------------
 
-    def map(self, fn: Callable[[T], U]) -> "Tainted[U]":
+    def map(self, fn: Callable[[T], U]) -> Tainted[U]:
         """Apply ``fn`` to the wrapped value, preserving all labels."""
         return Tainted(
             value=fn(self.value),
@@ -63,7 +64,7 @@ class Tainted(Generic[T]):
             annotations=self.annotations,
         )
 
-    def join(self, other: "Tainted[Any]") -> "Tainted[T]":
+    def join(self, other: Tainted[Any]) -> Tainted[T]:
         """Join labels with another ``Tainted`` without changing the value.
 
         Used to "absorb" the taint of another value into this one
@@ -76,7 +77,7 @@ class Tainted(Generic[T]):
             integrity=_meet(self.integrity, other.integrity),
         )
 
-    def with_integrity(self, integrity: Integrity) -> "Tainted[T]":
+    def with_integrity(self, integrity: Integrity) -> Tainted[T]:
         """Return a copy with a (potentially upgraded) integrity label.
 
         For *upgrading* integrity, prefer ``Policy.declassify``. That
@@ -84,15 +85,15 @@ class Tainted(Generic[T]):
         """
         return replace(self, integrity=integrity)
 
-    def with_provenance(self, *sources: str) -> "Tainted[T]":
+    def with_provenance(self, *sources: str) -> Tainted[T]:
         return replace(self, provenance=self.provenance | frozenset(sources))
 
-    def with_capabilities(self, *caps: str) -> "Tainted[T]":
+    def with_capabilities(self, *caps: str) -> Tainted[T]:
         return replace(self, capabilities=self.capabilities | frozenset(caps))
 
     # ---- string-y conveniences ----------------------------------------
 
-    def __add__(self, other: Any) -> "Tainted[Any]":
+    def __add__(self, other: Any) -> Tainted[Any]:
         if isinstance(other, Tainted):
             return Tainted(
                 value=self.value + other.value,
@@ -102,7 +103,7 @@ class Tainted(Generic[T]):
             )
         return replace(self, value=self.value + other)
 
-    def __radd__(self, other: Any) -> "Tainted[Any]":
+    def __radd__(self, other: Any) -> Tainted[Any]:
         if isinstance(other, Tainted):
             return other.__add__(self)
         return replace(self, value=other + self.value)
@@ -120,7 +121,7 @@ class Tainted(Generic[T]):
                 integrity=self.integrity,
             )
 
-    def __getitem__(self, key: Any) -> "Tainted[Any]":
+    def __getitem__(self, key: Any) -> Tainted[Any]:
         return replace(self, value=self.value[key])  # type: ignore[index]
 
     def __contains__(self, item: Any) -> bool:

@@ -20,11 +20,12 @@ every tool-call evaluation point.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Iterable
+from typing import Any
 
-from aisafepy.flow.taint import Integrity, Tainted
+from aisafepy.flow.taint import Integrity
 
 
 class Capability(str, Enum):
@@ -107,7 +108,7 @@ class Policy:
         *,
         integrity: Integrity = "UNTRUSTED",
         caps: Iterable[Capability | str] = (),
-    ) -> "Policy":
+    ) -> Policy:
         self.sources[name] = SourceLabel(
             name=name,
             integrity=integrity,
@@ -122,7 +123,7 @@ class Policy:
         control_flow_integrity: Integrity = "UNTRUSTED",
         caps: Iterable[Capability | str] = (),
         arg_max_integrity: Integrity = "UNTRUSTED",
-    ) -> "Policy":
+    ) -> Policy:
         self.requirements[tool] = ToolRequirement(
             name=tool,
             control_flow_integrity=control_flow_integrity,
@@ -137,15 +138,15 @@ class Policy:
         *,
         when: Callable[..., bool],
         reason: str,
-    ) -> "Policy":
+    ) -> Policy:
         self.deny_rules.append(DenyRule(tool=tool, when=when, reason=reason))
         return self
 
-    def declassify(self, tool: str, *, by: str) -> "Policy":
+    def declassify(self, tool: str, *, by: str) -> Policy:
         self.declassifications[tool] = DeclassifyRule(tool=tool, by=by)
         return self
 
-    def with_mode(self, mode: str) -> "Policy":
+    def with_mode(self, mode: str) -> Policy:
         if mode not in ("strict", "mediated"):
             raise ValueError(f"mode must be 'strict' or 'mediated' (got {mode!r})")
         self.mode = mode
@@ -226,7 +227,7 @@ def secure_tool(
         # Store metadata as an attribute. Wrapped function is still
         # directly callable; the interpreter inspects metadata at the
         # call site.
-        setattr(fn, "__aisafepy_tool__", meta)
+        fn.__aisafepy_tool__ = meta
         return fn
 
     return deco

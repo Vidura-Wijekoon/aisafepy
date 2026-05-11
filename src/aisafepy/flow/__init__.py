@@ -29,9 +29,9 @@ Quickstart::
         ...
 """
 
+from aisafepy.flow.interpreter import IFCContext, evaluate_call
 from aisafepy.flow.policy import Capability, Integrity, Policy, secure_tool
 from aisafepy.flow.taint import Tainted, lift, lower
-from aisafepy.flow.interpreter import IFCContext, evaluate_call
 
 __all__ = [
     "Capability",
@@ -40,11 +40,11 @@ __all__ = [
     "Policy",
     "Tainted",
     "evaluate_call",
+    "ifc_mcp_server",
     "lift",
     "lower",
     "secure_agent",
     "secure_tool",
-    "ifc_mcp_server",
 ]
 
 

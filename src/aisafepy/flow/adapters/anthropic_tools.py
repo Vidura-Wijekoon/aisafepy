@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from aisafepy.flow.interpreter import (
     IFCContext,

@@ -94,7 +94,10 @@ def _train_steering_vector(
     training loops, but the core math is just a mean-diff."""
     try:
         import torch  # type: ignore[import-not-found]
-        from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[import-not-found]
+        from transformers import (  # type: ignore[import-not-found]
+            AutoModelForCausalLM,
+            AutoTokenizer,
+        )
     except ImportError as exc:  # pragma: no cover - depends on env
         raise ModuleNotFoundError(
             "Steering requires `pip install aisafepy[adapt,probes]`."

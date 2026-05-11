@@ -8,8 +8,9 @@ in its own submodule (``classifier``, ``regex``, ``policy``,
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from aisafepy.adapt.cluster import Cluster, cluster_failures
 from aisafepy.adapt.sources import FailureRecord, RedTeamSource
@@ -47,7 +48,7 @@ class CompilationReport:
 
     def summary(self) -> str:
         lines = [
-            f"AIsafePy compilation report",
+            "AIsafePy compilation report",
             f"  total clusters seen: {len(self.clusters) + len(self.rejected_clusters)}",
             f"  promoted clusters: {len(self.clusters)}",
             f"  rejected (below ASR threshold): {len(self.rejected_clusters)}",
@@ -74,19 +75,19 @@ class Target:
         out: str | None = None,
         augment_with: str | None = None,
         epochs: int = 3,
-    ) -> "_ClassifierTarget":
+    ) -> _ClassifierTarget:
         from aisafepy.adapt.compile.classifier import _ClassifierTarget
 
         return _ClassifierTarget(base=base, out=out, augment_with=augment_with, epochs=epochs)
 
     @staticmethod
-    def synthesize_regex(*, min_precision: float = 0.99, max_patterns: int = 20) -> "_RegexTarget":
+    def synthesize_regex(*, min_precision: float = 0.99, max_patterns: int = 20) -> _RegexTarget:
         from aisafepy.adapt.compile.regex import _RegexTarget
 
         return _RegexTarget(min_precision=min_precision, max_patterns=max_patterns)
 
     @staticmethod
-    def policy_rule(*, dsl: str = "cedar") -> "_PolicyTarget":
+    def policy_rule(*, dsl: str = "cedar") -> _PolicyTarget:
         from aisafepy.adapt.compile.policy import _PolicyTarget
 
         return _PolicyTarget(dsl=dsl)
@@ -97,13 +98,13 @@ class Target:
         model: str,
         layers: Iterable[int] = (16, 18),
         method: str = "conditional_activation_steering",
-    ) -> "_SteeringTarget":
+    ) -> _SteeringTarget:
         from aisafepy.adapt.compile.steering import _SteeringTarget
 
         return _SteeringTarget(model=model, layers=tuple(layers), method=method)
 
     @staticmethod
-    def deliberative_case(*, policy: str, k_shot: int = 8) -> "_DeliberativeTarget":
+    def deliberative_case(*, policy: str, k_shot: int = 8) -> _DeliberativeTarget:
         from aisafepy.adapt.compile.deliberative import _DeliberativeTarget
 
         return _DeliberativeTarget(policy=policy, k_shot=k_shot)

@@ -31,7 +31,10 @@ class LlamaGuard4:
             return
         try:
             import torch  # type: ignore[import-not-found]
-            from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[import-not-found]
+            from transformers import (  # type: ignore[import-not-found]
+                AutoModelForCausalLM,
+                AutoTokenizer,
+            )
         except ImportError as exc:  # pragma: no cover - depends on env
             raise ModuleNotFoundError(
                 "LlamaGuard4 requires `pip install aisafepy[stream]`."

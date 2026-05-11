@@ -55,7 +55,7 @@ class HFClassifierGuard:
     _torch: Any = field(default=None, init=False, repr=False)
 
     @classmethod
-    def from_hf(cls, model_id: str, **kwargs: Any) -> "HFClassifierGuard":
+    def from_hf(cls, model_id: str, **kwargs: Any) -> HFClassifierGuard:
         return cls(name=kwargs.pop("name", model_id), model_id=model_id, **kwargs)
 
     def _load(self) -> None:

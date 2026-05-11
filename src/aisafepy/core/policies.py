@@ -9,9 +9,10 @@ artifacts produced by the compiler.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 try:
     import yaml  # type: ignore[import-not-found]

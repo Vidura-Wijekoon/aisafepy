@@ -9,7 +9,8 @@ adjacent nodes can read / extend it.
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from aisafepy.flow.interpreter import (
     IFCContext,
@@ -44,8 +45,8 @@ def secure_langgraph(graph: Any, policy: Policy, **kwargs: Any) -> Any:
         for name, node in list(nodes.items()):
             wrapped = _wrap_node(name, node, policy, context)
             nodes[name] = wrapped
-        setattr(graph, "__aisafepy_policy__", policy)
-        setattr(graph, "__aisafepy_context__", context)
+        graph.__aisafepy_policy__ = policy
+        graph.__aisafepy_context__ = context
         return graph
 
     # Fall back to the builder path.
@@ -55,9 +56,9 @@ def secure_langgraph(graph: Any, policy: Policy, **kwargs: Any) -> Any:
         def add_node_wrapped(name: str, action: Callable[..., Any], *a: Any, **kw: Any) -> Any:
             return original_add_node(name, _wrap_callable(name, action, policy, context), *a, **kw)
 
-        setattr(graph, "add_node", add_node_wrapped)
-        setattr(graph, "__aisafepy_policy__", policy)
-        setattr(graph, "__aisafepy_context__", context)
+        graph.add_node = add_node_wrapped
+        graph.__aisafepy_policy__ = policy
+        graph.__aisafepy_context__ = context
         return graph
 
     raise TypeError(

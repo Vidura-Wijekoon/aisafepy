@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from aisafepy.core.telemetry import structured_log
 
@@ -27,7 +27,7 @@ class BudgetExceeded(RuntimeError):
     cites the actual cap).
     """
 
-    def __init__(self, message: str, budget: "Budget"):
+    def __init__(self, message: str, budget: Budget):
         super().__init__(message)
         self.budget = budget
 

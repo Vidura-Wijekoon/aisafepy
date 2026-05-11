@@ -22,13 +22,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
     Literal,
     Protocol,
     runtime_checkable,

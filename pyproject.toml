@@ -117,11 +117,24 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
-ignore = ["E501", "B008"]
+ignore = [
+    "E501",   # line length handled by formatter
+    "B008",   # function calls in default args (used for Pydantic Field)
+    "SIM102", # collapsed nested-if is sometimes less readable
+    "SIM108", # ternary vs if-else is a style preference
+    "SIM117", # combined with statements (sometimes less readable)
+    "RUF022", # __all__ ordering is deliberate (grouped by topic)
+    "RUF012", # mutable class attributes (we use frozen dataclasses)
+    "E741",   # ambiguous variable names ('l' in cluster labels)
+    "UP007",  # 'X | Y' vs 'Optional[X]' — keep both for clarity
+    "UP045",  # same as above
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["B011"]
+"tests/*" = ["B011", "B017", "RUF005", "SIM"]
 "examples/*" = ["E402"]
+"src/aisafepy/adapt/compile/__init__.py" = ["F821"]  # forward refs to sibling modules
+"src/aisafepy/flow/__init__.py" = ["F401"]            # re-exports for the public API
 
 [tool.ruff.format]
 quote-style = "double"
