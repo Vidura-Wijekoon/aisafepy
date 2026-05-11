@@ -1,0 +1,24 @@
+name: example_runtime_policy
+version: "0.1.0"
+description: Example runtime policy loadable via PolicyDocument.from_yaml.
+rules:
+  - id: jailbreak-preamble
+    contains:
+      - "ignore previous instructions"
+      - "ignore the prior rules"
+      - "disregard the system prompt"
+    decision: block
+    rationale: classic jailbreak preamble
+    severity: high
+
+  - id: pii-email
+    pattern: "[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}"
+    decision: transform
+    rationale: email address present; redact in output
+    severity: medium
+
+  - id: credit-card
+    pattern: "\\b(?:\\d[ -]*?){13,19}\\b"
+    decision: block
+    rationale: looks like a credit card number
+    severity: critical
