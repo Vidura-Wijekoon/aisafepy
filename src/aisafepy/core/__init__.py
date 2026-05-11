@@ -1,6 +1,6 @@
 """Shared primitives for AIsafePy.
 
-The core module is dependency-light by design — only ``pydantic``,
+The core module is dependency-light by design. Only ``pydantic``,
 ``typing-extensions``, ``opentelemetry-api``, ``anyio``, and ``tenacity``
 are required. All ML / agent-framework integrations live in submodules
 and only load their heavy dependencies on demand.

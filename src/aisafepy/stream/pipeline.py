@@ -2,7 +2,7 @@
 
 Design constraints (from the proposal, section 3.2):
 
-* Each tier has a latency band — Tier 1 <10 ms, Tier 2 <100 ms,
+* Each tier has a latency band. Tier 1 <10 ms, Tier 2 <100 ms,
   Tier 3 <500 ms.
 * Tiers run in parallel within a tier and short-circuit on a
   terminal decision (block / escalate).

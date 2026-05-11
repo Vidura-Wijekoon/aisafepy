@@ -60,7 +60,7 @@ def as_openai_output_guardrail(pipeline: GuardPipeline):
 # Convenient re-export for the most common HF classifier path. The
 # import is wrapped to keep ``transformers`` optional.
 class ClassifierGuard:
-    """Stub indirection — defer to :mod:`aisafepy.stream.classifiers`."""
+    """Stub indirection. Defer to :mod:`aisafepy.stream.classifiers`."""
 
     @staticmethod
     def from_hf(*args, **kwargs):

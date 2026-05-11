@@ -64,7 +64,7 @@ def promote(
     fp_budget:
         Maximum false-positive rate before the canary auto-rolls back.
     shadow_only:
-        When True, guards are added in shadow mode only — their
+        When True, guards are added in shadow mode only. Their
         decisions are recorded but never enforced.
     """
     result = CanaryResult()

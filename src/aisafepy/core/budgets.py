@@ -1,4 +1,4 @@
-"""Budgets — iteration, token, wall-clock, and dollar.
+"""Budgets. Iteration, token, wall-clock, and dollar.
 
 Inspired by browser-use#191, AgentBudget.dev, and *Beyond Max Tokens*
 (arXiv 2601.10955). Every long-running agent in production hits one of

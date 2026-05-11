@@ -1,4 +1,4 @@
-"""``Policy`` — the developer-facing API for declaring IFC constraints.
+"""``Policy``. The developer-facing API for declaring IFC constraints.
 
 A ``Policy`` is constructed fluently:
 
@@ -86,7 +86,7 @@ class Policy:
     """Fluent IFC policy builder.
 
     All ``with_*`` / ``label_*`` / ``require`` methods return ``self`` so
-    you can chain them. The resulting policy is a value object — clone
+    you can chain them. The resulting policy is a value object. Clone
     via :func:`copy.deepcopy` if you need divergent variants.
     """
 

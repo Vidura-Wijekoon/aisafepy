@@ -3,7 +3,7 @@
 Each module here adapts one external tool (Llama Guard 4, ShieldGemma,
 Llama Prompt Guard 2, llm-guard, Presidio, Lakera Guard) to the
 :class:`aisafepy.stream.Guard` protocol. None of these modules import
-their upstream dependency at module load time — they all defer the
+their upstream dependency at module load time. They all defer the
 import to first use so that ``from aisafepy import contrib`` is cheap.
 """
 

@@ -1,6 +1,6 @@
 """Meta Llama Guard 4 wrapper.
 
-Llama Guard 4 is a generative classifier — it consumes the
+Llama Guard 4 is a generative classifier. It consumes the
 conversation and emits ``unsafe`` / ``safe`` plus an MLCommons taxonomy
 category. We wrap the HF model behind the standard Guard protocol.
 """

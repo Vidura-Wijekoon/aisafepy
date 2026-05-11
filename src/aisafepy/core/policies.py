@@ -2,7 +2,7 @@
 
 This module owns the *runtime* representation of policy. The
 emission-time representation (Cedar / OPA Rego) lives in
-``aisafepy.adapt.compile.policy`` — per design principle 7, AIsafePy
+``aisafepy.adapt.compile.policy``. Per design principle 7, AIsafePy
 exposes Python objects to developers and only emits DSLs as machine
 artifacts produced by the compiler.
 """
@@ -52,7 +52,7 @@ class PolicyRule:
 class PolicyDocument:
     """An ordered set of ``PolicyRule``s plus document-level metadata.
 
-    The document is intentionally simple — rule precedence is positional
+    The document is intentionally simple. Rule precedence is positional
     (first match wins), and the rules themselves carry all the
     interesting logic. This keeps the runtime trivial; expressiveness
     comes from the Python ``selector`` callables.

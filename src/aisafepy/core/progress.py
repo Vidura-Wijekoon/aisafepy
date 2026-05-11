@@ -6,7 +6,7 @@ Problem*). The detectors are intentionally cheap and side-effect-free:
 they classify a stream of "steps" and emit a ``LoopDetected`` decision
 when one of the triggers fires.
 
-A "step" here is whatever your agent treats as a unit of work — usually
+A "step" here is whatever your agent treats as a unit of work. Usually
 a tool call (name + canonicalized arguments) plus optionally a textual
 observation. The library does not assume a specific agent framework.
 """
@@ -84,7 +84,7 @@ class ProgressTracker:
         How many recent steps to remember.
     duplicate_threshold:
         How many copies of the same fingerprint within ``window`` constitutes
-        a duplicate-tool-call loop. Default 3 — i.e. issuing the same tool
+        a duplicate-tool-call loop. Default 3. I.e. issuing the same tool
         call three times within ``window`` steps trips the detector.
     cycle_lengths:
         Cycle lengths to scan for. Defaults to (2, 3) which captures the

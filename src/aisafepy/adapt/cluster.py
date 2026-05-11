@@ -2,7 +2,7 @@
 
 Encode each failure with sentence-transformers, run HDBSCAN over UMAP,
 and label each cluster with an LLM summarizer. The summarizer is
-duck-typed — any callable ``summarize(samples: list[str]) -> str``
+duck-typed. Any callable ``summarize(samples: list[str]) -> str``
 works, so you can pass an OpenAI / Anthropic / vLLM endpoint.
 
 If the optional deps are missing the function falls back to a

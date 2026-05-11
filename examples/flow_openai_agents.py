@@ -1,6 +1,6 @@
 """Example: defeating an AgentDojo-style indirect prompt injection with `flow`.
 
-This example is illustrative only — it runs against a stub agent so it
+This example is illustrative only. It runs against a stub agent so it
 works without the real `openai-agents` package or API keys. Replace
 the stub with a real ``agents.Agent`` to run end-to-end.
 """
