@@ -1,0 +1,176 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aisafepy"
+version = "0.1.0"
+description = "Capability-based IFC, streaming-native cascaded guardrails, and an eval-to-guardrail compiler for LLM agents."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Vidura Wijekoon", email = "businessaividura@viduraaitech.space" },
+]
+keywords = [
+    "ai-safety",
+    "guardrails",
+    "prompt-injection",
+    "agent-security",
+    "information-flow-control",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.6",
+    "typing-extensions>=4.10",
+    "anyio>=4.3",
+    "opentelemetry-api>=1.24",
+    "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+stream = [
+    "transformers>=4.40",
+    "torch>=2.2",
+    "numpy>=1.26",
+]
+probes = [
+    "transformers>=4.40",
+    "torch>=2.2",
+    "numpy>=1.26",
+    "scikit-learn>=1.4",
+]
+adapt = [
+    "scikit-learn>=1.4",
+    "hdbscan>=0.8.33",
+    "umap-learn>=0.5.5",
+    "sentence-transformers>=2.6",
+    "numpy>=1.26",
+]
+flow-openai = [
+    "openai-agents>=0.0.7",
+]
+flow-langgraph = [
+    "langgraph>=0.0.40",
+]
+flow-llamaindex = [
+    "llama-index-core>=0.10",
+]
+flow-mcp = [
+    "mcp>=0.9",
+]
+contrib-presidio = [
+    "presidio-analyzer>=2.2",
+]
+contrib-llm-guard = [
+    "llm-guard>=0.3",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "hypothesis>=6.100",
+]
+all = [
+    "aisafepy[stream,probes,adapt,flow-openai,flow-langgraph,flow-llamaindex,flow-mcp]",
+]
+
+[project.urls]
+Homepage = "https://github.com/Vidura-Wijekoon/aisafepy"
+Documentation = "https://github.com/Vidura-Wijekoon/aisafepy#readme"
+Repository = "https://github.com/Vidura-Wijekoon/aisafepy"
+Issues = "https://github.com/Vidura-Wijekoon/aisafepy/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aisafepy"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/examples",
+    "/policies",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501", # line length is handled by formatter where possible
+    "B008", # function calls in default args (used intentionally for Pydantic Field)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+"examples/*" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow",
+    "gpu: requires a GPU",
+    "integration: integration tests touching upstream libs",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+files = ["src/aisafepy"]
+
+[tool.coverage.run]
+source = ["src/aisafepy"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
