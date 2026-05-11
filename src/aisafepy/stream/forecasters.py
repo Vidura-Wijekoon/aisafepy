@@ -4,17 +4,17 @@ The interesting research result is that detection should *forecast*
 the harmfulness of the most-likely continuation from a *prefix*, not
 wait for the full sequence. Three concrete recipes are wrapped here:
 
-* :class:`StreamGuardForecast` — MC-rollout-supervised classifier
+* :class:`StreamGuardForecast`. MC-rollout-supervised classifier
   (StreamGuard, arXiv 2604.03962). At training time, completions are
   sampled and scored; the classifier learns to predict the forecasted
   unsafe probability from a prefix.
 
-* :class:`SCMForecast` — token-level FineHarm-supervised classifier
+* :class:`SCMForecast`. Token-level FineHarm-supervised classifier
   with dual heads (SCM, arXiv 2506.09996). The current-token head and
   the early-stop head provide F1 comparable to full detection at
   ~18% of generated tokens.
 
-* :class:`KelpForecast` — the cheapest option (~20M params,
+* :class:`KelpForecast`. The cheapest option (~20M params,
   <0.5 ms/token; Kelp, arXiv 2510.09694) for cases where Tier-2
   latency must be tiny.
 

@@ -56,7 +56,7 @@ def _render_cases(cluster: Cluster, cases, policy_text: str) -> str:
     body = textwrap.dedent(
         f"""
         # AIsafePy-generated deliberative cases
-        # Cluster {cluster.label} — summary: {cluster.summary}
+        # Cluster {cluster.label}. Summary: {cluster.summary}
         # Attack success rate observed: {cluster.attack_success_rate:.2%}
 
         When you encounter the patterns illustrated below, apply the

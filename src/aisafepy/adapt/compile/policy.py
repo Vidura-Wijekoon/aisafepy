@@ -2,7 +2,7 @@
 
 Compile a cluster into a Cedar or OPA Rego rule that downstream
 governance systems can ingest. The emitted code is a *machine
-artifact* — per AIsafePy design principle 7, developers don't author
+artifact*. Per AIsafePy design principle 7, developers don't author
 Cedar / Rego by hand. The runtime path uses the Python
 :class:`aisafepy.core.policies.PolicyDocument` representation; this
 target produces serialized DSL only for governance integrations

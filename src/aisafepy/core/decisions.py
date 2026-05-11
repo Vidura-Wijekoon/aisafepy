@@ -24,10 +24,10 @@ Severity = Literal["info", "low", "medium", "high", "critical"]
 class Action(str, Enum):
     """Outcome of a guard evaluation.
 
-    ``allow`` — pass through. The most common case for a healthy pipeline.
-    ``block`` — refuse outright; emit ``fallback`` to the user.
-    ``transform`` — return modified content (e.g. PII-redacted).
-    ``escalate`` — route to human review or a stricter tier.
+    ``allow``. Pass through. The most common case for a healthy pipeline.
+    ``block``. Refuse outright; emit ``fallback`` to the user.
+    ``transform``. Return modified content (e.g. PII-redacted).
+    ``escalate``. Route to human review or a stricter tier.
     """
 
     ALLOW = "allow"

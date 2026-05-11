@@ -1,12 +1,16 @@
+<p align="center">
+  <img src="docs/aisafepy-logo.jpg" alt="AIsafePy" width="420"/>
+</p>
+
 # AIsafePy
 
 **Capability-based information-flow control, streaming-native cascaded guardrails, and a continuous eval-to-guardrail compiler for LLM agents.**
 
 AIsafePy fills three gaps that the existing OSS guardrails ecosystem (NeMo, Guardrails AI, llm-guard, LlamaFirewall, OpenAI Guardrails) has not closed:
 
-1. **`aisafepy.flow`** — capability-based, taint-propagating runtime around tool-calling agents (CaMeL / FIDES / RTBAS-style information-flow control), packaged as drop-in adapters for OpenAI Agents SDK, LangGraph, LlamaIndex, Anthropic tools, and MCP servers.
-2. **`aisafepy.stream`** — streaming-native cascaded guardrails with deterministic Tier-1, small-classifier Tier-2, and optional white-box activation probes / LLM-judge Tier-3, plus an explicit p95 latency budget and structured `GuardDecision`s.
-3. **`aisafepy.adapt`** — a continuous eval-to-guardrail compiler that promotes PyRIT / Garak / Inspect failures into runtime guards: distilled classifiers, synthesized regexes, Cedar/OPA policy rules, steering vectors (for self-hosted models), and deliberative cases.
+1. **`aisafepy.flow`**. Capability-based, taint-propagating runtime around tool-calling agents (CaMeL / FIDES / RTBAS-style information-flow control), packaged as drop-in adapters for OpenAI Agents SDK, LangGraph, LlamaIndex, Anthropic tools, and MCP servers.
+2. **`aisafepy.stream`**. Streaming-native cascaded guardrails with deterministic Tier-1, small-classifier Tier-2, and optional white-box activation probes / LLM-judge Tier-3, plus an explicit p95 latency budget and structured `GuardDecision`s.
+3. **`aisafepy.adapt`**. A continuous eval-to-guardrail compiler that promotes PyRIT / Garak / Inspect failures into runtime guards: distilled classifiers, synthesized regexes, Cedar/OPA policy rules, steering vectors (for self-hosted models), and deliberative cases.
 
 ## Status
 
@@ -108,11 +112,11 @@ promote(report, to=GuardPipeline.from_yaml("guards.yaml"),
 ```
 src/aisafepy/
 ├── core/           # shared primitives: GuardDecision, telemetry, budgets, progress, policies
-├── flow/           # Gap 1 — capability-based IFC
+├── flow/           # Gap 1. Capability-based IFC
 │   └── adapters/   # openai_agents, langgraph, llamaindex, anthropic_tools, mcp
-├── stream/         # Gap 2 — streaming cascade
+├── stream/         # Gap 2. Streaming cascade
 │   └── adapters/   # openai_agents, langchain, llamaindex
-├── adapt/          # Gap 3 — eval-to-guardrail compiler
+├── adapt/          # Gap 3. Eval-to-guardrail compiler
 │   └── compile/    # classifier, regex, policy, steering, deliberative
 └── contrib/        # thin wrappers: presidio, llama_guard, shield_gemma, prompt_guard, llm_guard, lakera
 ```
@@ -128,7 +132,7 @@ src/aisafepy/
 
 ## Caveats
 
-Capability-based defenses reduce risk dramatically but are not free — CaMeL reports ~2.7× tokens, RTBAS ~2% utility loss. Streaming forecasters require MC rollouts or token-level supervision to train. Activation probes are model-specific. AIsafePy does not solve sleeper-agent / deceptive-alignment problems. See `docs/CAVEATS.md`.
+Capability-based defenses reduce risk dramatically but are not free. CaMeL reports ~2.7× tokens, RTBAS ~2% utility loss. Streaming forecasters require MC rollouts or token-level supervision to train. Activation probes are model-specific. AIsafePy does not solve sleeper-agent / deceptive-alignment problems. See `docs/CAVEATS.md`.
 
 ## License
 

@@ -91,7 +91,7 @@ def _candidate_spans(positives: list[str], min_len: int) -> list[tuple[str, int]
 
 def _estimate_precision(pat: re.Pattern[str], positives: list[str]) -> float:
     """Without a true negative set we approximate precision as the
-    fraction of positives the pattern catches (recall) — this is a
+    fraction of positives the pattern catches (recall). This is a
     crude proxy, but it lets us rank candidates."""
     hits = sum(1 for p in positives if pat.search(p))
     return hits / max(len(positives), 1)

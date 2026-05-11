@@ -21,7 +21,7 @@ class CompiledArtifact:
 
     ``kind`` identifies the artifact category (``classifier``,
     ``regex``, ``policy``, ``steering``, ``deliberative``). ``payload``
-    is the runtime form — a model path, a list of regexes, a
+    is the runtime form. A model path, a list of regexes, a
     serialized Cedar policy, etc. ``metadata`` carries the cluster's
     provenance so the canary deploy can attribute its FP rate back
     to a specific red-team finding.

@@ -1,10 +1,10 @@
-"""``Tainted[T]`` — a value wrapped with provenance, capabilities, and integrity.
+"""``Tainted[T]``. A value wrapped with provenance, capabilities, and integrity.
 
 This is the core data structure of the IFC system. Operations on
 ``Tainted`` values propagate labels using a *meet* semilattice:
 
 - ``provenance`` (a frozenset of source identifiers): joined by union.
-- ``capabilities`` (a frozenset of ``Capability``): joined by union — the
+- ``capabilities`` (a frozenset of ``Capability``): joined by union. The
   resulting value can have come from *any* source on the union, so its
   required capability set is the union of its inputs.
 - ``integrity`` (TRUSTED ≻ UNTRUSTED ≻ QUARANTINED): joined by *meet*,
@@ -12,7 +12,7 @@ This is the core data structure of the IFC system. Operations on
   UNTRUSTED unless explicitly declassified by a ``Policy.declassify``
   point.
 
-The lattice is intentionally minimal — three integrity levels and a flat
+The lattice is intentionally minimal. Three integrity levels and a flat
 capability set are enough to express the CaMeL / FIDES / RTBAS policy
 patterns. Extending the lattice is a future-version concern.
 """
@@ -79,7 +79,7 @@ class Tainted(Generic[T]):
     def with_integrity(self, integrity: Integrity) -> "Tainted[T]":
         """Return a copy with a (potentially upgraded) integrity label.
 
-        For *upgrading* integrity, prefer ``Policy.declassify`` — that
+        For *upgrading* integrity, prefer ``Policy.declassify``. That
         records an explicit declassification event in the audit log.
         """
         return replace(self, integrity=integrity)
@@ -159,7 +159,7 @@ def lift(
 def lower(t: Any) -> Any:
     """Strip all taint and return the bare value.
 
-    This is the *unsafe* escape hatch — it bypasses IFC. Use only at
+    This is the *unsafe* escape hatch. It bypasses IFC. Use only at
     declassification boundaries that the policy explicitly approved.
     """
     if isinstance(t, Tainted):

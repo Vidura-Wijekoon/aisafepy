@@ -2,12 +2,12 @@
 
 Implements two recipes:
 
-* :class:`LinearProbe` — a single logistic regression over the
+* :class:`LinearProbe`. A single logistic regression over the
   pooled residual-stream activations at a chosen layer (or an ensemble
   averaged across layers). This is the *Anthropic "Simple probes catch
   sleeper agents"* recipe.
 
-* :class:`MLPProbe` — a small 2-layer MLP over the same activations.
+* :class:`MLPProbe`. A small 2-layer MLP over the same activations.
   Kirch et al. (arXiv 2411.03343) showed non-linear probes
   outperform linear ones on harder jailbreak categories. We default
   to one hidden layer of width 256.

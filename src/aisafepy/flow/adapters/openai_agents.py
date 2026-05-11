@@ -29,7 +29,7 @@ from aisafepy.flow.taint import Tainted, lift
 def secure_openai_agent(agent: Any, policy: Policy, **kwargs: Any) -> Any:
     """Wrap an OpenAI Agents SDK ``Agent`` with IFC enforcement.
 
-    The original agent object is *mutated in place* — its ``tools``
+    The original agent object is *mutated in place*. Its ``tools``
     list is replaced with IFC-wrapped versions. Returns the same agent
     for convenience so callers can write
     ``safe_agent = secure_agent(agent, policy)``.

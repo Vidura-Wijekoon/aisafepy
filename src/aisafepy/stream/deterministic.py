@@ -2,14 +2,14 @@
 
 Pure-Python implementations of the cheapest guard primitives:
 
-* :class:`RegexGuard` — linear-time pattern matching with optional
+* :class:`RegexGuard`. Linear-time pattern matching with optional
   catastrophic-backtracking protection. Defaults to the ``re`` module;
   if ``re2`` or ``hyperscan`` is installed they are used transparently.
-* :class:`AhoCorasickGuard` — a trie-based multi-pattern matcher for
+* :class:`AhoCorasickGuard`. A trie-based multi-pattern matcher for
   large blocklists. Falls back to a sorted-substring scan when the
   ``ahocorasick`` package is missing.
-* :class:`BlocklistGuard` — convenience over Aho-Corasick.
-* :class:`SchemaGuard` — partial JSON validation against a Pydantic
+* :class:`BlocklistGuard`. Convenience over Aho-Corasick.
+* :class:`SchemaGuard`. Partial JSON validation against a Pydantic
   model (useful for tool-call argument extraction).
 """
 
@@ -227,7 +227,7 @@ class SchemaGuard:
         try:
             if self.partial:
                 # In partial mode we drop missing required fields by
-                # construction — Pydantic v2 supports `model_construct`.
+                # construction. Pydantic v2 supports `model_construct`.
                 self.model.model_validate(data)
             else:
                 self.model.model_validate(data)

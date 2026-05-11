@@ -1,4 +1,4 @@
-"""AIsafePy — capability-based IFC, streaming guardrails, and an eval-to-guard compiler.
+"""AIsafePy. Capability-based IFC, streaming guardrails, and an eval-to-guard compiler.
 
 Top-level public API re-exports the most commonly used types from each module.
 Submodules (flow, stream, adapt, contrib) are imported lazily on first use so
