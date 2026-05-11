@@ -2,6 +2,23 @@
   <img src="docs/aisafepy-logo.jpg" alt="AIsafePy" width="420"/>
 </p>
 
+<p align="center">
+  <a href="https://pypi.org/project/aisafepy/"><img src="https://img.shields.io/pypi/v/aisafepy.svg?color=blue" alt="PyPI version"/></a>
+  <a href="https://pypi.org/project/aisafepy/"><img src="https://img.shields.io/pypi/pyversions/aisafepy.svg" alt="Python versions"/></a>
+  <a href="https://pypi.org/project/aisafepy/"><img src="https://img.shields.io/pypi/dm/aisafepy.svg?color=informational" alt="PyPI downloads"/></a>
+  <a href="https://github.com/Vidura-Wijekoon/aisafepy/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vidura-Wijekoon/aisafepy.svg" alt="License: Apache-2.0"/></a>
+  <a href="https://github.com/Vidura-Wijekoon/aisafepy/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Vidura-Wijekoon/aisafepy/ci.yml?branch=main&label=CI" alt="CI status"/></a>
+  <a href="https://github.com/Vidura-Wijekoon/aisafepy/stargazers"><img src="https://img.shields.io/github/stars/Vidura-Wijekoon/aisafepy.svg?style=social" alt="GitHub stars"/></a>
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#layout">Layout</a> ·
+  <a href="#design-principles">Design</a> ·
+  <a href="docs/CAVEATS.md">Caveats</a>
+</p>
+
 # AIsafePy
 
 **Capability-based information-flow control, streaming-native cascaded guardrails, and a continuous eval-to-guardrail compiler for LLM agents.**
