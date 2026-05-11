@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from aisafepy.core.decisions import Tripwire
 from aisafepy.flow.interpreter import (
@@ -47,8 +48,8 @@ def secure_openai_agent(agent: Any, policy: Policy, **kwargs: Any) -> Any:
     for tool in agent.tools:
         wrapped.append(_wrap_function_tool(tool, policy, context))
     agent.tools = wrapped
-    setattr(agent, "__aisafepy_policy__", policy)
-    setattr(agent, "__aisafepy_context__", context)
+    agent.__aisafepy_policy__ = policy
+    agent.__aisafepy_context__ = context
     return agent
 
 

@@ -30,8 +30,9 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterator
+from typing import Any
 
 from aisafepy.core.decisions import GuardDecision, IFCViolation
 from aisafepy.core.telemetry import (

@@ -22,8 +22,9 @@ import functools
 import hashlib
 import json
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from aisafepy.flow.interpreter import (
     IFCContext,
@@ -117,7 +118,7 @@ def ifc_mcp_server(
                     )
             return original_add_tool(name, schema, _wrap_handler(name, handler, policy, context))
 
-        setattr(server, "add_tool", patched_add_tool)
+        server.add_tool = patched_add_tool
 
     # Intercept the JSON-RPC dispatch. Most MCP servers expose
     # ``handle_call_tool(name, arguments) -> ...``.
@@ -130,10 +131,10 @@ def ifc_mcp_server(
             _check(name, (), arguments, policy, context, None)
             return original_handle(name, arguments)
 
-        setattr(server, "handle_call_tool", patched_handle)
+        server.handle_call_tool = patched_handle
 
-    setattr(server, "__aisafepy_policy__", policy)
-    setattr(server, "__aisafepy_context__", context)
+    server.__aisafepy_policy__ = policy
+    server.__aisafepy_context__ = context
     return server
 
 

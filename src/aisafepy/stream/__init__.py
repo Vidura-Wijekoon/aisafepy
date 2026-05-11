@@ -12,6 +12,8 @@ OpenTelemetry spans. The pipeline enforces a p95 latency budget and
 supports fail-open-with-flag when the budget is exceeded.
 """
 
+# Subpackages exported as namespaces.
+from aisafepy.stream import classifiers, forecasters, probes
 from aisafepy.stream.deterministic import (
     AhoCorasickGuard,
     BlocklistGuard,
@@ -24,9 +26,6 @@ from aisafepy.stream.pipeline import (
     GuardPipeline,
     Tier,
 )
-
-# Subpackages exported as namespaces.
-from aisafepy.stream import classifiers, forecasters, probes  # noqa: F401
 
 __all__ = [
     "AhoCorasickGuard",

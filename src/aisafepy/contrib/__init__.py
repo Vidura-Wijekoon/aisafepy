@@ -15,8 +15,8 @@ from aisafepy.contrib.prompt_guard import PromptGuard2
 from aisafepy.contrib.shield_gemma import ShieldGemma
 
 __all__ = [
-    "LakeraGuard",
     "LLMGuardOutputScanner",
+    "LakeraGuard",
     "LlamaGuard4",
     "PresidioPIIGuard",
     "PromptGuard2",

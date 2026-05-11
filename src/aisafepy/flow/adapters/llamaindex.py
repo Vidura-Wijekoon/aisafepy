@@ -33,8 +33,8 @@ def secure_llamaindex_agent(agent: Any, policy: Policy, **kwargs: Any) -> Any:
     for tool in tools:
         _wrap_tool_in_place(tool, policy, context)
 
-    setattr(agent, "__aisafepy_policy__", policy)
-    setattr(agent, "__aisafepy_context__", context)
+    agent.__aisafepy_policy__ = policy
+    agent.__aisafepy_context__ = context
     return agent
 
 

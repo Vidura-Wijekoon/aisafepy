@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Pattern
+from re import Pattern
+from typing import Any
 
 from aisafepy.core.decisions import GuardDecision
 from aisafepy.stream.pipeline import Context
@@ -58,7 +60,7 @@ class RegexGuard:
     vector described in arXiv 2410.02916."""
 
     @classmethod
-    def compile_pii(cls, name: str = "pii", redact: bool = False) -> "RegexGuard":
+    def compile_pii(cls, name: str = "pii", redact: bool = False) -> RegexGuard:
         return cls(
             name=name,
             patterns=dict(_PII_PATTERNS),
@@ -73,7 +75,7 @@ class RegexGuard:
         patterns: dict[str, str] | dict[str, Pattern[str]],
         *,
         action_on_match: str = "block",
-    ) -> "RegexGuard":
+    ) -> RegexGuard:
         compiled = {
             k: (v if isinstance(v, re.Pattern) else re.compile(v, re.IGNORECASE | re.MULTILINE))
             for k, v in patterns.items()
@@ -123,7 +125,7 @@ class RegexGuard:
         )
 
     @classmethod
-    def blocklist(cls, terms: Iterable[str], *, name: str = "blocklist") -> "RegexGuard":
+    def blocklist(cls, terms: Iterable[str], *, name: str = "blocklist") -> RegexGuard:
         escaped = {f"term_{i}": re.escape(t) for i, t in enumerate(terms)}
         return cls.from_patterns(name=name, patterns=escaped, action_on_match="block")
 

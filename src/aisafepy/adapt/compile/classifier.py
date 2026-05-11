@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from aisafepy.adapt.cluster import Cluster
 from aisafepy.adapt.compile import CompiledArtifact

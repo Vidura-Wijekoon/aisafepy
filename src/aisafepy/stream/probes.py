@@ -22,9 +22,10 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from aisafepy.core.decisions import GuardDecision
 from aisafepy.stream.pipeline import Context
@@ -81,7 +82,7 @@ class LinearProbe:
         name: str = "linear_probe",
         threshold: float = 0.5,
         l2: float = 1.0,
-    ) -> "LinearProbe":
+    ) -> LinearProbe:
         """Fit a logistic-regression probe.
 
         ``pos_examples`` are unsafe / target-class strings.
@@ -169,7 +170,7 @@ class LinearProbe:
         torch.save({"weight": self.weight, "bias": self.bias}, path)
 
     @classmethod
-    def load(cls, path: str | Path) -> "LinearProbe":
+    def load(cls, path: str | Path) -> LinearProbe:
         torch = _require_torch()
         path = Path(path)
         manifest = json.loads(path.with_suffix(".json").read_text())
@@ -210,7 +211,7 @@ class MLPProbe(LinearProbe):
         hidden_dim: int = 256,
         epochs: int = 30,
         lr: float = 1e-3,
-    ) -> "MLPProbe":
+    ) -> MLPProbe:
         torch = _require_torch()
         layers = tuple(layers)
         feats_pos = [_collect_features(model, tokenizer, layers, t) for t in pos_examples]

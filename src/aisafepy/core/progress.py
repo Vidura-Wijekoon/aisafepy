@@ -16,9 +16,10 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Sequence
+from typing import Any
 
 from aisafepy.core.decisions import GuardDecision
 
