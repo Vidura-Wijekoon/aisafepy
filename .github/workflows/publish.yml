@@ -120,7 +120,10 @@ jobs:
           path: dist/
 
       - name: Generate SLSA build provenance attestation
-        uses: actions/attest-build-provenance@5e9cb68e95676991667494a6a4e59b8696d4685f  # v1.4.3
+        # Note: pinned to a major tag temporarily because the prior SHA pin
+        # could not be verified by Dependabot. Dependabot will pin this to
+        # the exact resolved SHA on its next weekly run; merge that PR.
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             dist/*.whl
@@ -132,7 +135,10 @@ jobs:
           inputs: dist/*.whl dist/*.tar.gz
 
       - name: Attach signatures to GitHub Release
-        uses: softprops/action-gh-release@c062e08bd532815e2d2c2a51fbc24f7d4d3e83df  # v2.2.0
+        # Note: pinned to a major tag temporarily because the prior SHA pin
+        # could not be verified by Dependabot. Dependabot will pin this to
+        # the exact resolved SHA on its next weekly run; merge that PR.
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.whl
