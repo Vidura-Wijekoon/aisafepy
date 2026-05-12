@@ -171,10 +171,27 @@ class LinearProbe:
 
     @classmethod
     def load(cls, path: str | Path) -> LinearProbe:
+        """Load a probe from disk.
+
+        Security note: probe files are loaded with ``weights_only=True``
+        so a malicious checkpoint cannot execute arbitrary code through
+        pickle (CVE-class vulnerability in older PyTorch). Only load
+        probes from a trusted source.
+        """
         torch = _require_torch()
         path = Path(path)
         manifest = json.loads(path.with_suffix(".json").read_text())
-        state = torch.load(path)
+        # weights_only=True restricts torch.load to tensor / int / float /
+        # str / list / dict only. Falls back gracefully for older torch.
+        try:
+            state = torch.load(path, weights_only=True)
+        except TypeError:
+            # Pre-1.13 torch does not accept weights_only. Refuse to
+            # load rather than execute arbitrary pickle.
+            raise RuntimeError(
+                "AIsafePy refuses to load probe files on torch < 1.13 "
+                "without weights_only=True. Upgrade torch to >= 2.0."
+            )
         probe = cls(
             name=manifest["name"],
             layers=tuple(manifest["layers"]),

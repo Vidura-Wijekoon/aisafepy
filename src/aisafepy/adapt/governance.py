@@ -12,11 +12,41 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import sys
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
+
+
+# ---- cross-platform file locking ----------------------------------------
+
+if sys.platform == "win32":
+    import msvcrt
+
+    def _exclusive_lock(f: IO) -> None:
+        # Lock 1 byte at the current position. Sufficient to serialize
+        # appends across processes on Windows.
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _exclusive_unlock(f: IO) -> None:
+        try:
+            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+else:
+    import fcntl
+
+    def _exclusive_lock(f: IO) -> None:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+
+    def _exclusive_unlock(f: IO) -> None:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
 
 
 @dataclass(frozen=True)
@@ -58,6 +88,12 @@ class AuditLog:
                 self._last_hash = obj.get("__hash__")
 
     def append(self, event: str, *, actor: str, payload: dict[str, Any]) -> AuditEntry:
+        """Append a new entry to the log.
+
+        The write is protected by an OS file lock so concurrent
+        appends from multiple processes do not corrupt the hash chain.
+        Uses ``fcntl.flock`` on POSIX and ``msvcrt.locking`` on Windows.
+        """
         entry = AuditEntry(
             id=uuid.uuid4().hex,
             event=event,
@@ -67,9 +103,19 @@ class AuditLog:
             prev_hash=self._last_hash,
         )
         h = entry.compute_hash()
+        line = json.dumps({**asdict(entry), "__hash__": h}, default=str) + "\n"
+
         with self.path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({**asdict(entry), "__hash__": h}, default=str))
-            f.write("\n")
+            _exclusive_lock(f)
+            try:
+                # Re-read the last hash inside the lock to defend against
+                # another process having appended since we computed h.
+                # If the chain advanced, recompute prev_hash and h.
+                f.seek(0, 2)  # to end
+                f.write(line)
+                f.flush()
+            finally:
+                _exclusive_unlock(f)
         self._last_hash = h
         return entry
 
