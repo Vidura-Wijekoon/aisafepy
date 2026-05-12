@@ -10,16 +10,15 @@ with a 10-line shim.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
-import os
 import sys
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import IO, Any
-
 
 # ---- cross-platform file locking ----------------------------------------
 
@@ -32,10 +31,8 @@ if sys.platform == "win32":
         msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
 
     def _exclusive_unlock(f: IO) -> None:
-        try:
+        with contextlib.suppress(OSError):
             msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-        except OSError:
-            pass
 else:
     import fcntl
 
@@ -43,10 +40,8 @@ else:
         fcntl.flock(f.fileno(), fcntl.LOCK_EX)
 
     def _exclusive_unlock(f: IO) -> None:
-        try:
+        with contextlib.suppress(OSError):
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        except OSError:
-            pass
 
 
 @dataclass(frozen=True)

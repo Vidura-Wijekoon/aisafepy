@@ -185,13 +185,13 @@ class LinearProbe:
         # str / list / dict only. Falls back gracefully for older torch.
         try:
             state = torch.load(path, weights_only=True)
-        except TypeError:
+        except TypeError as exc:
             # Pre-1.13 torch does not accept weights_only. Refuse to
             # load rather than execute arbitrary pickle.
             raise RuntimeError(
                 "AIsafePy refuses to load probe files on torch < 1.13 "
                 "without weights_only=True. Upgrade torch to >= 2.0."
-            )
+            ) from exc
         probe = cls(
             name=manifest["name"],
             layers=tuple(manifest["layers"]),
@@ -310,15 +310,25 @@ def _collect_features(model: Any, tokenizer: Any, layers: tuple[int, ...], text:
     return torch.cat(parts, dim=0)
 
 
-def _pool_hidden_states(hidden_states: Any, layers: tuple[int, ...]) -> Any:
+def _collect_features(model, tokenizer, layers, text):
+    """Run a forward pass and return mean-pooled hidden states concatenated
+    across the requested layers."""
+    torch = _require_torch()
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+    inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+    with torch.no_grad():
+        outputs = model(**inputs, output_hidden_states=True)
+    hs = outputs.hidden_states
+    parts = [hs[i].mean(dim=1).squeeze(0).cpu() for i in layers]
+    return torch.cat(parts, dim=0)
+
+
+def _pool_hidden_states(hidden_states, layers):
     """Mean-pool the supplied hidden states at the requested layers.
 
     Accepts either a tuple of tensors (the HF default) or a dict
     ``{layer_idx: tensor}``.
     """
     torch = _require_torch()
-    if isinstance(hidden_states, dict):
-        parts = [hidden_states[i].mean(dim=1).squeeze(0).cpu() for i in layers]
-    else:
-        parts = [hidden_states[i].mean(dim=1).squeeze(0).cpu() for i in layers]
+    parts = [hidden_states[i].mean(dim=1).squeeze(0).cpu() for i in layers]
     return torch.cat(parts, dim=0)
