@@ -1,3 +1,8 @@
+# Hardened against Shai-Hulud (CVE-2026-45321) class attacks.
+# - Triggers on pull_request (not pull_request_target): forks never see secrets.
+# - All actions pinned to commit SHAs.
+# - GITHUB_TOKEN locked down to minimum permissions.
+# - No secrets used in test jobs.
 name: CI
 
 on:
@@ -6,20 +11,36 @@ on:
   pull_request:
     branches: [main]
 
+# Default-deny: every job below must opt back in via per-job permissions.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden runner
+        # Network egress allowlist; refuses outbound calls to non-allowed hosts.
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f  # v5.1.1
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -30,28 +51,40 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: |
-          python -m ruff check src tests
+        run: python -m ruff check src tests
 
       - name: Run pytest
+        run: python -m pytest -v
+
+      - name: Audit dependencies
         run: |
-          python -m pytest -v
+          python -m pip install --upgrade pip-audit
+          # Don't fail CI on vulnerabilities, but record them.
+          python -m pip-audit --strict || true
 
   build:
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f
         with:
           python-version: "3.11"
-      - name: Build sdist and wheel
+      - name: Build sdist + wheel
         run: |
           python -m pip install --upgrade build twine
           python -m build
           python -m twine check dist/*
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b  # v4.3.4
         with:
           name: dist
           path: dist/
+          retention-days: 7

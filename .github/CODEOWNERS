@@ -1,0 +1,17 @@
+# Every change to security-relevant code requires explicit owner review.
+# This is the human gate that catches a hijacked CI from quietly slipping
+# malicious code into a sensitive area.
+
+# Default: maintainer reviews everything
+*                              @Vidura-Wijekoon
+
+# CI and packaging — highest blast radius if compromised
+/.github/                      @Vidura-Wijekoon
+/pyproject.toml                @Vidura-Wijekoon
+/SECURITY.md                   @Vidura-Wijekoon
+
+# Security-critical primitives
+/src/aisafepy/core/telemetry.py  @Vidura-Wijekoon
+/src/aisafepy/flow/             @Vidura-Wijekoon
+/src/aisafepy/adapt/governance.py @Vidura-Wijekoon
+/src/aisafepy/stream/probes.py   @Vidura-Wijekoon
