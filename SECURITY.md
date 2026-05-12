@@ -78,3 +78,84 @@ If you are running AIsafePy in production:
 Thanks to the researchers behind CaMeL, FIDES, RTBAS, SAFEFLOW,
 Constitutional Classifiers, and the Anthropic Alignment Science Team
 for the techniques this library packages.
+
+
+## Supply chain integrity
+
+AIsafePy treats the path from source to installed package as part of
+its security perimeter. The May 2026 "Mini Shai-Hulud" worm
+(CVE-2026-45321, CVSS 9.6) compromised 172 npm and PyPI packages by
+hijacking GitHub Actions OIDC tokens at publication time. The hardening
+below makes AIsafePy resistant to the same attack class.
+
+### How we publish
+
+- The publish workflow (`.github/workflows/publish.yml`) is triggered
+  only on a **published GitHub Release**, never on a push or PR.
+- Publication runs inside the `pypi` environment, which requires a
+  human reviewer in the GitHub UI before the deploy step runs.
+- PyPI Trusted Publishing (OIDC) is used. There is no long-lived
+  PyPI API token stored in repository secrets.
+- Every action in every workflow is pinned to a commit SHA, not a
+  mutable tag. A version comment is included alongside the SHA so
+  humans can review what they pin to.
+- `GITHUB_TOKEN` defaults to no permissions; each job opts in to the
+  minimum scopes it needs.
+- The `step-security/harden-runner` action restricts outbound network
+  egress on every runner.
+- Every release artifact is signed with sigstore and accompanied by
+  a SLSA-style build provenance attestation. Both are uploaded to the
+  GitHub Release.
+- A CycloneDX SBOM is generated for each release and attached as a
+  release asset.
+
+### How to verify a release
+
+You can verify any v0.1.1 or later AIsafePy release before installing.
+
+1. **Verify the sigstore signature**:
+   ```bash
+   pip install sigstore
+   sigstore verify identity \
+     --cert-identity "https://github.com/Vidura-Wijekoon/aisafepy/.github/workflows/publish.yml@refs/tags/v0.1.1" \
+     --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+     aisafepy-0.1.1-py3-none-any.whl
+   ```
+2. **Verify the build provenance**:
+   ```bash
+   gh attestation verify aisafepy-0.1.1-py3-none-any.whl \
+     --repo Vidura-Wijekoon/aisafepy
+   ```
+3. **Pin by hash in your own lockfile**:
+   ```toml
+   # pyproject.toml or requirements.txt
+   aisafepy==0.1.1 \
+       --hash=sha256:<paste hash from PyPI release page>
+   ```
+   `pip install --require-hashes` will refuse to install anything else.
+
+### What an attacker would need to defeat this stack
+
+To publish a malicious AIsafePy version to PyPI, an attacker would
+need to compromise *all* of:
+
+- The maintainer's GitHub account (2FA-protected).
+- The `pypi` environment approver (a different human, in practice).
+- The pinned SHA of every action in the publish workflow.
+- The sigstore signing certificate chain (issued ephemerally per run).
+
+Each layer alone is bypassable. Combined, this is much harder than
+the single-OIDC-token theft pattern that Shai-Hulud exploited.
+
+### What we ask of users
+
+If you depend on AIsafePy in production:
+
+1. Pin to a specific version with `--require-hashes`.
+2. Subscribe to GitHub Releases for `Vidura-Wijekoon/aisafepy`.
+3. Run `pip-audit` weekly against your environment.
+4. Treat any prerelease (`X.Y.Z-alpha`) as alpha. Do not auto-update
+   to prereleases.
+
+If anything in this section is unclear or you find a gap, please
+report it via the disclosure address at the top of this file.

@@ -1,0 +1,38 @@
+# Dependabot keeps dependencies fresh; security PRs land within ~24h of
+# disclosure. Crucial defense against the Shai-Hulud / Mini-Shai-Hulud
+# class of attacks where a transitive dep gets compromised.
+version: 2
+updates:
+  # Python runtime dependencies + dev extras
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: UTC
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - python
+    # Group routine version bumps; security PRs always come ungrouped + immediate.
+    groups:
+      runtime:
+        patterns: ["*"]
+        exclude-patterns: ["pytest*", "ruff", "mypy", "hypothesis"]
+      dev:
+        patterns: ["pytest*", "ruff", "mypy", "hypothesis"]
+
+  # GitHub Actions: anything used in .github/workflows/*.yml
+  # Critical because Shai-Hulud's attack vector was a compromised action.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions

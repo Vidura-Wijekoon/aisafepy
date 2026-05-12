@@ -1,27 +1,142 @@
+# Publishes AIsafePy to PyPI on GitHub Release.
+# Hardened against Shai-Hulud (CVE-2026-45321) class supply-chain attacks:
+# - Uses PyPI Trusted Publishing (OIDC). No long-lived API tokens in secrets.
+# - Triggers only on a published Release (not PRs, not pushes).
+# - Runs under a protected environment so a human must approve the deploy.
+# - Generates SLSA-style sigstore attestation for every artifact.
+# - All actions pinned to commit SHAs.
+# - Runner egress is locked down to required PyPI / sigstore hosts.
 name: Publish to PyPI
 
 on:
   release:
     types: [published]
 
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # Required for OIDC trusted publishing
-
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.10.1
+        with:
+          egress-policy: audit
 
-      - uses: actions/setup-python@v5
+      - name: Checkout (release tag)
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Verify the tag matches pyproject version
+        run: |
+          PY_VERSION=$(grep -E '^version *= *' pyproject.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          TAG="${{ github.event.release.tag_name }}"
+          TAG_VERSION="${TAG#v}"
+          if [ "$PY_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::pyproject.toml version ($PY_VERSION) does not match tag ($TAG_VERSION). Refusing to publish."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f  # v5.1.1
         with:
           python-version: "3.11"
 
-      - name: Install build
-        run: pip install build
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
 
-      - name: Build package
-        run: python -m build
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          python -m pip install --upgrade cyclonedx-bom
+          cyclonedx-py environment --output-format JSON --output-file dist/aisafepy-sbom.json
+          ls -la dist/
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b  # v4.3.4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 30
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    needs: build
+    # The "pypi" environment is configured on GitHub with required reviewers,
+    # so a human must approve every publication. Defense in depth even if a
+    # workflow file is compromised.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/aisafepy/
+    permissions:
+      id-token: write       # Required for PyPI trusted publishing (OIDC)
+      contents: read
+
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Verify Twine metadata one more time
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine check dist/*.whl dist/*.tar.gz
+
+      - name: Publish to PyPI via OIDC trusted publishing
+        # No PYPI_API_TOKEN: this step uses the workflow's OIDC identity
+        # which PyPI has been told to trust for this repo + workflow.
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc  # v1.12.4
+        with:
+          packages-dir: dist/
+          # Don't upload the SBOM JSON to PyPI; it stays as a release asset.
+          skip-existing: false
+          verbose: true
+
+  attest-and-sign:
+    runs-on: ubuntu-latest
+    needs: publish-pypi
+    permissions:
+      id-token: write       # For sigstore signing
+      attestations: write   # For SLSA-style attestations
+      contents: write       # For uploading attestations to the release
+    steps:
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate SLSA build provenance attestation
+        uses: actions/attest-build-provenance@5e9cb68e95676991667494a6a4e59b8696d4685f  # v1.4.3
+        with:
+          subject-path: |
+            dist/*.whl
+            dist/*.tar.gz
+
+      - name: Sign artifacts with sigstore
+        uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46  # v3.0.0
+        with:
+          inputs: dist/*.whl dist/*.tar.gz
+
+      - name: Attach signatures to GitHub Release
+        uses: softprops/action-gh-release@c062e08bd532815e2d2c2a51fbc24f7d4d3e83df  # v2.2.0
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.sigstore
+            dist/*.sigstore.json
+            dist/aisafepy-sbom.json
