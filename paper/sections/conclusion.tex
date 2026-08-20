@@ -1,0 +1,47 @@
+We presented AIsafePy, an Apache-2.0 Python library that targets
+three high-leverage gaps in the open-source LLM-agent safety
+ecosystem: capability-based information-flow control around
+tool-using agents, streaming-native cascaded guardrails with optional
+white-box activation probes, and a continuous eval-to-guardrail
+compiler that converts red-team findings into runtime artifacts
+across four output modalities. The library is composable, observable
+through OpenTelemetry, and explicitly framed as defense in depth
+rather than as a complete safety solution.
+
+The proximal contribution is engineering: bringing CaMeL-style
+capability-based IFC research to ordinary developers via drop-in
+adapters for OpenAI Agents SDK, LangGraph, LlamaIndex, Anthropic
+tools, and MCP. The
+distal contribution is workflow: the eval-to-guardrail compiler
+operationalizes a loop that has, to date, been hand-stitched in
+production teams and sold as a commercial moat by Galileo and
+Lakera.
+
+The roadmap for v1.0 prioritizes: (1) replicating the headline
+benchmarks (AgentDojo ASR $\leq 5\%$ at $\geq 90\%$ utility,
+streaming-guard p95 added latency $\leq 80$ ms, AILuminate
+time-to-fix $\leq 30$ minutes), (2) shipping pre-trained probes
+per major
+open-weights family, (3) hardening the MCP adapter against the next
+generation of tool-poisoning attacks, and (4) delivering the audio
+modality currently scoped as a stretch goal.
+
+We invite contributions in the form of new adapters, new
+\texttt{contrib/} wrappers, additional benchmark harnesses, and
+documented production deployments. The repository is at
+\url{https://github.com/Vidura-Wijekoon/aisafepy}.
+
+\section*{Acknowledgments}
+The design draws heavily on the CaMeL research line at Google
+DeepMind, on Anthropic's published work on activation probes and
+Constitutional Classifiers, and on the broader AgentDojo and
+HarmBench evaluation communities. We are grateful to the authors
+of those papers for the abstractions this library packages.
+
+\section*{Data and code availability}
+Source code, documentation, and benchmark harnesses are available at
+\url{https://github.com/Vidura-Wijekoon/aisafepy} under the Apache
+2.0 license. The package is published on PyPI as \texttt{aisafepy}.
+Reproduction logs for every benchmark reported in future revisions
+of this paper will be tagged in the repository under
+\texttt{benchmarks/results/}.

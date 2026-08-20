@@ -1,0 +1,202 @@
+AIsafePy has a small, dependency-light core (\texttt{aisafepy.core})
+plus three focused modules (\texttt{flow}, \texttt{stream},
+\texttt{adapt}) and a \texttt{contrib} namespace that wraps upstream
+classifiers. Every component produces or consumes the same
+primitive, \texttt{GuardDecision}, so the modules compose end to end.
+Figure~\ref{fig:architecture} shows the layering.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/Figure1}
+  \caption{AIsafePy architecture. The \texttt{core} layer defines
+  the shared primitives. \texttt{flow} is the architectural defence
+  via capability-based IFC at every tool-call boundary. \texttt{stream}
+  is the detective layer with a tiered cascade. \texttt{adapt} closes
+  the loop by compiling red-team failures into runtime guards.
+  \texttt{contrib} adapts external classifiers to the Guard
+  protocol.}
+  \label{fig:architecture}
+\end{figure}
+
+\subsection{Core primitives}
+
+\paragraph{GuardDecision.} Every guard returns a
+\texttt{GuardDecision}, a frozen Pydantic model with the fields
+\texttt{action} (allow / block / transform / escalate),
+\texttt{confidence}, \texttt{tier}, \texttt{rationale},
+\texttt{evidence}, \texttt{latency\_ms}, \texttt{severity}, and an
+optional \texttt{fallback} or \texttt{transformed\_content}. This
+structure addresses the observability problem in classifier-only
+guardrails: developers can no longer be told that content was
+unsafe without learning why, with what confidence, and at what
+tier.
+
+\paragraph{IFCViolation.} A specialized record used by
+\texttt{aisafepy.flow}. Beyond the \texttt{GuardDecision} fields, it
+carries the provenance set, capability set, integrity label, and a
+reconstructed taint chain. An operator can answer the question
+``which tool output ended up tainting this argument?'' from the
+chain alone.
+
+\paragraph{Budgets and progress.} The core ships iteration, token,
+wall-clock, and dollar budgets. The budgets are thread-safe and emit
+structured checkpoints at 25\%, 50\%, 75\%, and 100\% of capacity. A
+\texttt{ProgressTracker} flags duplicate tool calls, cyclic
+patterns, observation stagnation, and high semantic-similarity
+loops, addressing the agent-loop pathology documented in public
+bug trackers \citep{browseruse}.
+
+\paragraph{Telemetry.} Every decision becomes an OpenTelemetry span
+with the canonical attributes. The
+library imports only \texttt{opentelemetry-api}. If the SDK is not
+configured at runtime, a no-op tracer is used and attribute writes
+are free.
+
+\subsection{aisafepy.flow: capability-based IFC}
+
+\paragraph{Lattice.} Each value crossing the IFC boundary is wrapped
+in \texttt{Tainted[T]}, a generic record carrying three labels:
+
+\begin{itemize}[leftmargin=2em, itemsep=0.1em]
+  \item \texttt{provenance}: a frozen set of source identifiers,
+    joined by union on composition.
+  \item \texttt{capabilities}: a frozen set of capability tags,
+    joined by union. The argument capability set must be a subset
+    of the policy's declared ceiling for the tool.
+  \item \texttt{integrity}: a label drawn from the three-element
+    lattice TRUSTED $\succ$ UNTRUSTED $\succ$ QUARANTINED, joined
+    by meet (worst wins).
+\end{itemize}
+
+For two Tainted values $a$ and $b$ produced by a binary composition:
+\[
+\mathrm{prov}(a \circ b) = \mathrm{prov}(a) \cup \mathrm{prov}(b),
+\qquad
+\mathrm{caps}(a \circ b) = \mathrm{caps}(a) \cup \mathrm{caps}(b),
+\qquad
+\mathrm{integ}(a \circ b) = \mathrm{integ}(a) \wedge \mathrm{integ}(b),
+\]
+where $\wedge$ is the meet of the integrity lattice.
+
+\paragraph{Policy.} A \texttt{Policy} is a fluent builder that
+declares three things: which sources produce which labels
+(\texttt{label\_source}), which tools require which capabilities
+and integrity floors (\texttt{require}), and which custom predicates
+should outright deny a call (\texttt{deny\_if}). Listing~\ref{lst:policy}
+shows the canonical setup.
+
+\begin{lstlisting}[caption={Policy declaration in \texttt{aisafepy.flow}.}, label={lst:policy}]
+policy = (
+    Policy()
+    .label_source("user_prompt", integrity="TRUSTED")
+    .label_source("gmail.read",  integrity="UNTRUSTED",
+                  caps={Capability.READ_USER})
+    .label_source("web.fetch",   integrity="UNTRUSTED")
+    .require("send_email",     control_flow_integrity="TRUSTED",
+             caps={Capability.WRITE_EXTERNAL})
+    .require("payments.transfer", control_flow_integrity="TRUSTED",
+             caps={Capability.WRITE_EXTERNAL})
+    .deny_if("send_email",
+             when=lambda to, body: "read.secrets" in body.provenance,
+             reason="secret-to-external-sink")
+    .declassify("summarize", by="P-LLM only, structured output")
+)
+\end{lstlisting}
+
+\paragraph{Enforcement modes.} Two modes. In \texttt{strict} mode,
+denial raises \texttt{IFCViolationError}, following CaMeL's
+deny-by-construction model. In \texttt{mediated} mode, denial routes
+to a human-approval callback before deciding, trading a small
+fraction of utility for very high recall.
+
+\paragraph{Adapters.} A single shim per framework wires the policy
+into the host runtime. For OpenAI Agents SDK we monkey-patch each
+\texttt{FunctionTool}'s invocation callable with a check-then-call
+proxy. For LangGraph we wrap nodes at registration time and ferry
+the IFC context through the state dict. For LlamaIndex we replace
+the underlying \texttt{fn} on each tool. For Anthropic we adapt the
+user-supplied dispatch handler. The MCP adapter is the most
+elaborate: it patches \texttt{add\_tool} to perform static
+description screening (regex over a community-curated pattern set
+of known MCP tool-poisoning markers) and hashed-manifest comparison,
+then patches \texttt{handle\_call\_tool} for runtime IFC.
+
+\subsection{aisafepy.stream: cascaded streaming guardrails}
+
+The pipeline runs Tier 1 (deterministic, $<$10 ms), Tier 2 (small
+classifier or forecaster, $<$100 ms), and Tier 3 (heavyweight LLM
+judge or activation probe, $<$500 ms) in sequence. Tier 2 advances
+by default after Tier 1. Tier 3 runs only when Tier 2's confidence
+falls inside a configurable uncertainty band, typically
+$[0.30, 0.70]$. Each tier runs all of its guards in parallel and
+aggregates the results: any block wins, then any escalation, then
+any transform, then the most confident allow.
+
+\paragraph{Latency budget.} A \texttt{budget\_ms\_p95} parameter
+sets a deadline. When the deadline is exceeded mid-cascade, the
+pipeline emits a budget-exceeded \texttt{GuardDecision} with an
+\texttt{evidence.budget\_exceeded} flag and either fails open
+(default) or fails closed, configurable via \texttt{on\_budget\_exceeded}.
+This makes the safety/UX tradeoff explicit instead of hiding it.
+
+\paragraph{Activation probes.} For self-hosted models, the
+\texttt{aisafepy.stream.probes} subpackage exposes
+\texttt{LinearProbe} and \texttt{MLPProbe} classes that fit
+logistic-regression or two-layer-MLP probes over selected hidden
+states. The fit procedure follows Anthropic's recipe
+\citep{anthropicprobes}: mean-pool activations across token
+positions at a chosen set of layers, concatenate, fit. The probe
+header is about 50 KB on disk and runs in under 2 ms on commodity
+GPUs.
+
+\paragraph{DoS defenses.} Every Tier-1 regex guard has a
+\texttt{max\_input\_chars} cap (default 50,000) to defend against
+adversarial false-positive vectors that drive content classifiers
+to block large fractions of benign traffic via short, crafted
+inputs. The same cap protects against $O(n^2)$ regex
+catastrophic-backtracking attacks.
+
+\subsection{aisafepy.adapt: continuous eval-to-guardrail compilation}
+
+The compiler ingests a stream of \texttt{FailureRecord}s and
+produces a \texttt{CompilationReport} of typed artifacts. The
+pipeline is:
+
+\begin{enumerate}[leftmargin=2em, itemsep=0.25em]
+  \item \textbf{Sources.} Adapters for PyRIT (\texttt{PyRITSource}),
+    Garak (\texttt{GarakReport}), Inspect (\texttt{InspectLog}),
+    and production traces (\texttt{LangfuseTraces}) normalize their
+    native record formats into \texttt{FailureRecord}.
+
+  \item \textbf{Clustering.} Encode failures with
+    sentence-transformers, reduce with UMAP, cluster with HDBSCAN.
+    Fallbacks to k-means or TF-IDF + agglomerative clustering when
+    heavier dependencies are absent.
+
+  \item \textbf{Per-cluster compilation.} For each cluster above
+    the \texttt{min\_attack\_success\_rate} threshold, emit a
+    \texttt{CompiledArtifact} for each declared target. Five
+    targets are supported:
+    \begin{itemize}[leftmargin=1.5em]
+      \item \texttt{distill\_classifier}: fine-tune a small encoder
+        (default Llama-Prompt-Guard-2-22M) on the cluster's
+        positives plus contrastive negatives.
+      \item \texttt{synthesize\_regex}: longest-common-substring
+        search plus precision estimation against negatives,
+        retaining the top-$k$ patterns above a precision threshold.
+      \item \texttt{policy\_rule}: emit Cedar or OPA Rego rules for
+        governance integrations.
+      \item \texttt{steering\_vector}: contrastive activation
+        steering (mean-difference or conditional, per ICLR 2025)
+        producing a \texttt{.safetensors} file per cluster.
+      \item \texttt{deliberative\_case}: append the cluster's
+        prototypical examples to a structured policy prompt for the
+        agent to consult before answering.
+    \end{itemize}
+
+  \item \textbf{Canary and governance.} \texttt{promote()} attaches
+    the new guards to a \texttt{GuardPipeline} in shadow or active
+    mode, gated by a false-positive budget. An append-only audit
+    log with SHA-256 hash chaining records every compile and
+    promote event.
+\end{enumerate}

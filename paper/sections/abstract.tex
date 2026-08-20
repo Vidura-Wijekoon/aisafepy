@@ -1,0 +1,26 @@
+The open-source LLM guardrail ecosystem in 2026 looks mature on the
+surface. Content classifiers, dialogue DSLs, decorator-style
+validator hubs, red-team frameworks: most of the squares on the
+matrix are filled. Three squares are not. First, no production
+library implements capability-based information-flow control around
+tool-using agents, despite the CaMeL research line that drives
+attack success rates to roughly zero by construction. Second, streaming guardrails are still wrong by
+default: existing libraries either buffer the full response and
+sacrifice time-to-first-token, or run guards in parallel and let
+violative tokens leak before cancellation. Third, the round-trip
+from PyRIT or Garak findings to deployed runtime guards is a
+two-engineer-day workflow that Galileo and Lakera sell as a
+commercial moat, and that has no open-source equivalent. We built
+AIsafePy to fill these three gaps. The library has a small
+dependency-light core and three focused modules.
+\texttt{aisafepy.flow} ports CaMeL-style taint propagation to
+OpenAI Agents SDK, LangGraph, LlamaIndex, Anthropic tools, and the
+Model Context Protocol. \texttt{aisafepy.stream} is a three-tier
+cascade with an explicit p95 latency budget and optional white-box
+activation probes for self-hosted models. \texttt{aisafepy.adapt}
+compiles red-team failures into four output modalities: distilled
+classifiers, synthesized regexes, Cedar or OPA policies, and
+contrastive steering vectors. We describe the design, key
+implementation decisions, an evaluation roadmap against AgentDojo
+and HarmBench plus a streaming-guard latency harness, and the
+failure modes the library does not address.

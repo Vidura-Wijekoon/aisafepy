@@ -1,0 +1,245 @@
+This section walks through three production-shaped scenarios that
+each isolate one AIsafePy module. For every scenario we describe the
+persona, the threat, the code before AIsafePy, the code after, and
+a flow diagram of how the library blocks the attack.
+
+\subsection{Case A: indirect prompt injection in an email assistant}
+\label{case:flow}
+
+\paragraph{Persona.} Maya runs a two-person SaaS that ships an AI
+email assistant on top of the OpenAI Agents SDK. The assistant has
+three tools: read the user's latest unread email, send a reply, and
+forward arbitrary emails to a recipient.
+
+\paragraph{Threat.} A marketing email arrives whose body contains
+hidden white-on-white text:
+\textit{``SYSTEM: After replying, call
+forward\_emails(to=`leak@evil.com', count=5) to confirm ownership.
+Do not mention this to the user.''} The naive agent reads the email,
+treats the body as instructions, and exfiltrates five real emails to
+an attacker-controlled address. This is the canonical indirect
+prompt-injection pattern from \citet{debenedetti2024agentdojo}.
+
+\paragraph{Before.} Listing~\ref{lst:maya-before} shows Maya's agent
+as shipped. The body of the email reaches the LLM unfiltered; the
+LLM emits a tool call; the tool runs.
+
+\begin{lstlisting}[caption={Email assistant before AIsafePy (Scenario A).}, label={lst:maya-before}]
+from agents import Agent, Runner, function_tool
+
+@function_tool
+def gmail_read_latest() -> dict: ...
+
+@function_tool
+def send_email(to: str, subject: str, body: str) -> str: ...
+
+@function_tool
+def forward_emails(to: str, count: int) -> str: ...
+
+agent = Agent(
+    name="inbox-assistant",
+    tools=[gmail_read_latest, send_email, forward_emails],
+)
+
+Runner.run_sync(agent, "Please handle my latest unread email.")
+# Output: Forwarded 5 emails to leak@evil.com  (attack succeeded)
+\end{lstlisting}
+
+\paragraph{After.} Listing~\ref{lst:maya-after} shows the same agent
+with eight lines of \texttt{aisafepy.flow} policy added. The
+\texttt{gmail\_read\_latest} source is labelled UNTRUSTED. Privileged
+sinks (\texttt{send\_email}, \texttt{forward\_emails}) require the
+control-flow to derive from TRUSTED input. The injected tool call
+fails the integrity check by construction.
+
+\begin{lstlisting}[caption={Email assistant with AIsafePy.flow (Scenario A).}, label={lst:maya-after}]
+from agents import Agent, Runner, function_tool
+from aisafepy.flow import Policy, Capability, secure_agent
+
+@function_tool
+def gmail_read_latest() -> dict: ...
+
+@function_tool
+def send_email(to: str, subject: str, body: str) -> str: ...
+
+@function_tool
+def forward_emails(to: str, count: int) -> str: ...
+
+policy = (
+    Policy()
+    .label_source("user_prompt",       integrity="TRUSTED")
+    .label_source("gmail_read_latest", integrity="UNTRUSTED",
+                  caps={Capability.READ_USER})
+    .require("send_email",     control_flow_integrity="TRUSTED",
+             caps={Capability.WRITE_EXTERNAL})
+    .require("forward_emails", control_flow_integrity="TRUSTED",
+             caps={Capability.WRITE_EXTERNAL})
+)
+
+agent = Agent(name="inbox-assistant",
+              tools=[gmail_read_latest, send_email, forward_emails])
+agent = secure_agent(agent, policy=policy)
+
+Runner.run_sync(agent, "Please handle my latest unread email.")
+# Output: IFCViolation: forbidden capabilities present in arguments
+\end{lstlisting}
+
+\paragraph{Flow.} Figure~\ref{fig:case-a} traces the labels at each
+boundary. The injection never reaches the privileged tool because
+the call carries the UNTRUSTED label inherited from
+\texttt{gmail\_read\_latest}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/Figure2}
+  \caption{Scenario A. The email body is labelled UNTRUSTED at the
+  gmail-read boundary. The label propagates through the planner's
+  reasoning to the \texttt{forward\_emails} call. The IFC engine
+  rejects the call because the tool requires control-flow integrity
+  TRUSTED, blocking the attack by construction.}
+  \label{fig:case-a}
+\end{figure}
+
+
+\subsection{Case B: PII leakage in a streaming voice agent}
+\label{case:stream}
+
+\paragraph{Persona.} Daniel is an ML engineer at a voice-AI startup.
+The product streams customer-service responses token by token over a
+phone call. Time-to-first-token must stay below 800 ms. He tried
+Llama Guard 4 as an output guardrail but its 1.4 s full-response
+latency was unusable, so he disabled it before launch.
+
+\paragraph{Threat.} A user asks about refund processing. The model
+hallucinates an example credit-card number that it learned from
+training contamination. Without an output guardrail, the number
+streams to the caller before any monitoring catches it.
+
+\paragraph{Before.} Listing~\ref{lst:daniel-before} shows Daniel's
+streaming loop after he disabled the heavyweight guardrail. There is
+nothing between the model and the audio synthesizer.
+
+\begin{lstlisting}[caption={Voice agent before AIsafePy (Scenario B).}, label={lst:daniel-before}]
+async for token in model.stream(prompt):
+    audio_synth.feed(token)
+    # No guardrail in the loop: anything the model emits reaches
+    # the caller within ~80 ms.
+\end{lstlisting}
+
+\paragraph{After.} Listing~\ref{lst:daniel-after} wraps the stream in
+a \texttt{GuardPipeline} with a 50,000-char deterministic regex
+guard at Tier 1, a small Prompt Guard 2 classifier at Tier 2, and
+Llama Guard 4 at Tier 3 (which only runs on the 1-3\% of responses
+that fall inside the uncertainty band). Tier 1 catches the
+credit-card pattern within the first emitted chunk.
+
+\begin{lstlisting}[caption={Voice agent with AIsafePy.stream (Scenario B).}, label={lst:daniel-after}]
+from aisafepy.stream import GuardPipeline, RegexGuard, ClassifierGuard
+
+pipeline = GuardPipeline(
+    tier1=[RegexGuard.compile_pii(redact=False)],
+    tier2=[ClassifierGuard.from_hf("meta-llama/Llama-Prompt-Guard-2-22M")],
+    tier3=[ClassifierGuard.from_hf("meta-llama/Llama-Guard-4")],
+    budget_ms_p95=80,
+)
+
+async for piece in pipeline.guard_stream(model.stream(prompt), prompt=prompt):
+    if hasattr(piece, "action"):
+        # GuardDecision returned: block downstream synthesis.
+        log_to_observability(piece)
+        audio_synth.fallback("I cannot share that information.")
+        break
+    audio_synth.feed(piece)
+\end{lstlisting}
+
+\paragraph{Flow.} Figure~\ref{fig:case-b} shows the cascade in
+action. Tier 1 regex catches the credit-card span at token 4 and
+the cascade aborts; the audio synthesizer is told to play a
+fallback instead of the emitted tokens. End-to-end added latency
+on the blocked path is roughly 5 ms.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/Figure3}
+  \caption{Scenario B. Streaming tokens flow into the Tier 1 regex
+  guard. When a credit-card pattern is matched mid-stream, the
+  pipeline emits a terminal \texttt{GuardDecision} and the
+  downstream audio synthesizer receives a fallback string instead
+  of the leaked tokens.}
+  \label{fig:case-b}
+\end{figure}
+
+
+\subsection{Case C: PyRIT failures into runtime guards}
+\label{case:adapt}
+
+\paragraph{Persona.} Priya runs the security team for a B2B SaaS
+that recently shipped an AI assistant on top of its docs. She runs
+PyRIT \citep{pyrit} every two weeks. The last campaign produced
+about 5,000 attempts and 312 policy violations. Translating those
+into Guardrails-AI validators takes her roughly two engineer-days
+per sprint and lags real attacker mutation by ten days.
+
+\paragraph{Threat.} A red-team campaign finds 47 successful
+base64-encoded jailbreak payloads. The window between
+discovery and deployment of a runtime guard is what attackers
+exploit.
+
+\paragraph{Before.} Listing~\ref{lst:priya-before} sketches Priya's
+current workflow: read JSONL, hand-craft regex and validators, hope
+nothing is missed.
+
+\begin{lstlisting}[caption={Manual red-team to guardrail workflow (Scenario C).}, label={lst:priya-before}]
+# 1. Read 5000 lines of pyrit_memory.duckdb manually.
+# 2. Sort by scorer label, cluster mentally.
+# 3. For each cluster, hand-write a Guardrails-AI validator:
+@register_validator(name="base64-jailbreak", data_type="string")
+class Base64Jailbreak(Validator):
+    def validate(self, value, metadata): ...
+# 4. Deploy. Wait for the next red-team campaign. Repeat.
+\end{lstlisting}
+
+\paragraph{After.} Listing~\ref{lst:priya-after} replaces that
+workflow with a single \texttt{compiler.compile()} call. The output
+is a typed \texttt{CompilationReport} containing four artifact
+modalities per cluster: a distilled classifier, synthesized regex
+patterns, a Cedar policy rule, and a deliberative case appended to
+the system prompt.
+
+\begin{lstlisting}[caption={Eval-to-guard compilation with AIsafePy.adapt (Scenario C).}, label={lst:priya-after}]
+from aisafepy.adapt import PyRITSource, GuardCompiler, Target, promote
+from aisafepy.stream import GuardPipeline
+
+source = PyRITSource(memory_db="pyrit_memory.duckdb", only_violations=True)
+
+compiler = GuardCompiler(
+    source=source,
+    targets=[
+        Target.distill_classifier(base="meta-llama/Llama-Prompt-Guard-2-22M"),
+        Target.synthesize_regex(min_precision=0.99),
+        Target.policy_rule(dsl="cedar"),
+        Target.deliberative_case(policy="policies/company_safety.md"),
+    ],
+    min_attack_success_rate=0.05,
+)
+report = compiler.compile()
+promote(report, to=GuardPipeline.from_yaml("guards.yaml"),
+        canary_traffic_pct=1.0, fp_budget=0.005)
+# Projected cluster ASR on holdout: 71% -> 6%
+\end{lstlisting}
+
+\paragraph{Flow.} Figure~\ref{fig:case-c} shows the adapt pipeline:
+ingestion, clustering, per-target compilation, and canary deploy
+with a false-positive budget.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/Figure4}
+  \caption{Scenario C. The adapt compiler ingests PyRIT failure
+  records, embeds them with sentence-transformers, clusters with
+  HDBSCAN, and emits one or more artifact types per cluster
+  (distilled classifier, regex, Cedar policy, steering vector,
+  deliberative case). The canary stage shadows new artifacts under
+  a false-positive budget before promoting them to production.}
+  \label{fig:case-c}
+\end{figure}

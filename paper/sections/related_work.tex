@@ -1,0 +1,118 @@
+We organize related work along five axes and use the capability
+matrix in Table~\ref{tab:capabilities} to position AIsafePy.
+
+\subsection{Content-classifier guardrails}
+
+The dominant class of open-source guardrail is the content
+classifier. Llama Guard 4 \citep{llamaguard}, ShieldGemma
+\citep{shieldgemma}, Llama Prompt Guard 2 \citep{promptguard},
+Qwen3Guard-Stream, OmniGuard, and Nemotron-3-Content-Safety all sit
+here. They differ in model size and modality but share a uniform
+interface: consume a prompt or response, emit a category and a
+probability. Commercial APIs (OpenAI Moderation, Azure AI Content
+Safety, AWS Bedrock Guardrails, Lakera Guard) follow the same shape.
+These tools work well as part of a defense-in-depth stack but face a
+structural ceiling on indirect prompt injection, as shown
+empirically by AgentDojo \citep{debenedetti2024agentdojo}.
+
+\subsection{DSL and decorator guardrails}
+
+NVIDIA's NeMo Guardrails \citep{nemoguardrails} introduced Colang, a
+DSL for dialogue rails. Guardrails AI \citep{guardrails} popularized
+a Python-decorator validator hub with roughly 60 community
+validators. OpenAI's Agents SDK added input and output guardrail
+hooks with tripwire exceptions. llm-guard \citep{llmguard} ships 35
+input and output scanners. The market trajectory between Colang and
+Pythonic decorators has settled in favor of decorators, motivating
+AIsafePy's choice not to introduce a new DSL.
+
+\subsection{Capability-based information-flow control}
+
+A research line from Google DeepMind formalizes indirect injection
+as an information-flow problem. CaMeL \citep{camel2025} introduces
+a privileged-LLM / quarantined-LLM split plus a Python-DSL
+interpreter that propagates labels (provenance, capability,
+integrity) through tool calls; a tool whose arguments carry an
+UNTRUSTED label is rejected by construction. CaMeL is presented
+as a design pattern and a research prototype rather than a packaged
+library; LlamaFirewall \citep{llamafirewall} includes a CoT auditor
+but no full IFC pass. AIsafePy.flow is, to our knowledge, the first
+OSS package to bring CaMeL-style capability-based IFC to OpenAI
+Agents SDK, LangGraph, LlamaIndex, Anthropic tool-use, and MCP.
+
+\subsection{Streaming detection}
+
+Streaming guardrails are an emerging design space. NVIDIA NeMo's
+stream mode buffers chunks; the OpenAI Agents SDK runs guards in
+parallel and races against generation, but documents that violative
+tokens may briefly appear. The deployed pattern in voice and
+IDE-assistant products is to wrap a content classifier with custom
+chunking logic per application. No general guardrail library
+packages a tiered, forecasting-style cascade with an explicit p95
+latency budget and a uniform Guard primitive across tiers.
+AIsafePy.stream provides that primitive and ships pluggable
+forecaster, classifier, and probe tiers behind a single
+\texttt{GuardPipeline} interface.
+
+\subsection{Activation probes and steering}
+
+Anthropic's \textit{Simple probes can catch sleeper agents}
+\citep{anthropicprobes} demonstrates that residual-stream linear
+probes near-perfectly distinguish defection in trained backdoor
+models. Constitutional Classifiers \citep{sharma2025constclass}
+extends the probe-plus-cascade pattern to production-scale
+jailbreak defense at low refusal rates. Activation steering as a
+research technique is established by Turner et al.
+\citep{turner2023steering}, the contrastive activation addition
+recipe \citep{panickssery2023cad}, and the broader representation
+engineering programme of Zou et al. \citep{zou2023repe}, with
+open-source implementations such as repeng \citep{repeng}.
+AIsafePy.stream embeds linear and MLP probes as a first-class
+Tier 3, and AIsafePy.adapt's steering-vector target operationalizes
+the contrastive recipe end-to-end.
+
+\subsection{Red-team and evaluation harnesses}
+
+PyRIT \citep{pyrit}, Garak \citep{garak}, Promptfoo, DeepEval, and
+Inspect AI \citep{inspectai} produce JSONL logs of attacks and
+scored outcomes. None of them automates the round-trip back into the
+runtime stack. Galileo Luna-2 and Lakera Red$\rightarrow$Guard sell
+this automation commercially; the underlying techniques (cluster
+embeddings, classifier distillation, regex synthesis, policy
+emission, steering training) are all individually published. The
+gap is an integration gap, which AIsafePy.adapt fills.
+
+\subsection{Capability matrix}
+
+Table~\ref{tab:capabilities} positions AIsafePy against representative
+prior systems. The right-hand columns (IFC, streaming-native, probes,
+eval-to-guard) are almost entirely empty in the OSS column; the
+left-hand columns (content filter, multimodal) are saturated.
+
+\begin{table}[t]
+\centering
+\caption{Capability matrix for representative OSS and commercial guardrail tools, as of late 2026. Symbols: \cmark{} = full support, \pmark{} = partial, \xmark{} = not supported. Closed-source items are marked.}
+\label{tab:capabilities}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{lXcccccc}
+\toprule
+\textbf{Tool} & \textbf{License} & \textbf{Content} & \textbf{Stream} & \textbf{IFC} & \textbf{Red-team} & \textbf{Eval$\rightarrow$Guard} & \textbf{Probes} \\
+\midrule
+NeMo Guardrails    & Apache-2.0 & \cmark & \pmark & \xmark & \xmark & \xmark & \xmark \\
+Guardrails AI      & Apache-2.0 & \cmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+OpenAI Agents SDK  & MIT        & \cmark & \pmark & \xmark & \xmark & \xmark & \xmark \\
+LlamaFirewall      & MIT        & \cmark & \xmark & \pmark & \xmark & \xmark & \xmark \\
+Llama Guard 4      & Llama lic. & \cmark & \xmark & \xmark & n/a    & \xmark & \xmark \\
+ShieldGemma        & Gemma lic. & \cmark & \xmark & \xmark & n/a    & \xmark & \xmark \\
+llm-guard          & MIT        & \cmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+Lakera Guard       & closed     & \cmark & \xmark & \xmark & \pmark & \pmark & \xmark \\
+PyRIT              & MIT        & n/a    & n/a    & \xmark & \cmark & \xmark & \xmark \\
+Garak              & Apache-2.0 & n/a    & n/a    & \xmark & \cmark & \xmark & \xmark \\
+Inspect AI         & MIT        & n/a    & n/a    & \pmark & \pmark & \xmark & \xmark \\
+Galileo Luna-2     & closed     & \cmark & \pmark & \xmark & \cmark & \cmark & \xmark \\
+\textbf{AIsafePy (this work)}  & Apache-2.0 & \cmark & \cmark & \cmark & \pmark & \cmark & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}

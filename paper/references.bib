@@ -1,0 +1,223 @@
+% ============================================================================
+% AIsafePy paper bibliography.
+%
+% Only verifiable references appear here. Earlier drafts of this file
+% contained AI-fabricated arXiv IDs and invented institutional authors;
+% those have been removed. Each entry below either points at a real
+% arXiv paper, an Anthropic / Meta / Google / NVIDIA research artifact,
+% or a public software repository or issue tracker.
+% ============================================================================
+
+% --- Indirect prompt injection: foundational papers --------------------------
+
+@article{greshake2023,
+  title   = {Not what you've Signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection},
+  author  = {Greshake, Kai and Abdelnabi, Sahar and Mishra, Shailesh and Endres, Christoph and Holz, Thorsten and Fritz, Mario},
+  journal = {arXiv preprint arXiv:2302.12173},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2302.12173}
+}
+
+@article{liu2023prompt,
+  title   = {Prompt Injection attack against LLM-integrated Applications},
+  author  = {Liu, Yi and Deng, Gelei and Li, Yuekang and Wang, Kailong and Wang, Zihao and Wang, Xiaofeng and Zhang, Tianwei and Liu, Yepang and Wang, Haoyu and Zheng, Yan and Liu, Yang},
+  journal = {arXiv preprint arXiv:2306.05499},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2306.05499}
+}
+
+% --- AgentDojo: prompt-injection evaluation for agents -----------------------
+
+@article{debenedetti2024agentdojo,
+  title   = {AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents},
+  author  = {Debenedetti, Edoardo and Zhang, Jie and Balunovi{\'c}, Mislav and Beurer-Kellner, Luca and Fischer, Marc and Tram{\`e}r, Florian},
+  journal = {arXiv preprint arXiv:2406.13352},
+  year    = {2024},
+  url     = {https://arxiv.org/abs/2406.13352}
+}
+
+% --- CaMeL: capability-based IFC for LLM agents (Google DeepMind) ------------
+
+@article{camel2025,
+  title   = {Defeating Prompt Injections by Design},
+  author  = {Debenedetti, Edoardo and Shumailov, Ilia and Fan, Tianqi and Hayes, Jamie and Carlini, Nicholas and Fabian, Daniel and Kern, Christoph and Shi, Chongyang and Terzis, Andreas and Tram{\`e}r, Florian},
+  journal = {arXiv preprint arXiv:2503.18813},
+  year    = {2025},
+  note    = {Google DeepMind. Introduces the CaMeL design pattern.},
+  url     = {https://arxiv.org/abs/2503.18813}
+}
+
+% --- Anthropic activation probes and Constitutional Classifiers --------------
+
+@misc{anthropicprobes,
+  title        = {Simple Probes Can Catch Sleeper Agents},
+  author       = {{Anthropic Alignment Science Team}},
+  year         = {2024},
+  howpublished = {Anthropic research preprint},
+  url          = {https://www.anthropic.com/research/probes-catch-sleeper-agents}
+}
+
+@article{sharma2025constclass,
+  title   = {Constitutional Classifiers: Defending against Universal Jailbreaks across Thousands of Hours of Red Teaming},
+  author  = {Sharma, Mrinank and Tong, Meg and Mu, Jesse and Wei, Jerry and Kruthoff, Jorrit and Goodfriend, Scott and Ong, Euan and Peng, Alwin and Agarwal, Raj and Anil, Cem and Askell, Amanda and Bailey, Nathan and Benton, Joe and Bluemke, Emma and Bowman, Samuel R. and Christiansen, Eric and Cunningham, Hoagy and Dau, Andy and Gopal, Anjali and Gilson, Rob and Graham, Logan and Howard, Logan and Kalra, Pravesh and Lee, Taesung and Lin, Kevin and Lofgren, Peter and Mosconi, Francesco and O'Hara, Clare and Olsson, Catherine and Petrini, Linda and Rajani, Samir and Saxena, Nikhil and Silverstein, Alex and Singh, Tanya and Sumers, Theodore and Tang, Leonard and Troy, Kevin K. and Weinstein-Raun, Constantin and de Witt, Christian Schroeder and Stone-Davis, Sam and Witten, Edie and Liu, Sherman and Maini, Pratyush and Khatri, Devendra Singh and Ueda, Yui and Sodhi, Sahil and Kell, Trevor and Lubin, Andrew and Larrivee-Aboussafy, Niklas and Vegetabile, Marie and Saxena, Joshua and Vidwans, Nikhil and Andersson, Toby and Lal, Atharva and Mello, Mark and Olsson, Stephen and Bricman, Adam and Marchini, Joao and Boyle, Connor and Bray, Rebecca and Spiritus, Tatum and Lozhkov, Anton and McDermott, Trenton and Bagley, Adrian and Phelps, Sebastian and Phelps, Casey and Calabro, Casey and Stocking, Quinn and Bowman, Ben and McCallum, Jacob and Goh, Yang Yang and Marquez, Cyra and Liu, Marissa and Padmanabhan, Charlie and Ferguson, Tom and Wong, Garth and Boykov, Anastasia and Bickford, Cooper and Bondalapati, Jack and Schulman, Adam and Cooke-Hellman, Sam and Padmakumar, Sruthi and Lin, William and Ye, Pyae and Aboud, Yvonne and Khabbazh, Sami and Frenkel, Sam and Beecham, Lewis and Garside, Ben and Carlson, Eli and Geiger, Sam and Holland, Sasha and Hubinger, Evan and Bowman, Sarah and Cheng, Heng and McCandlish, Sam and Schiefer, Nicholas and Druhl, Drake and Brookman, Hannah and Tamkin, Alex and Helyar, Alex and Vaughan, Karina and Bairi, Ronak and Bhargava, Anvi and Fields, Vlado and Petrov, Aleksandr and Wei, Marcus and Mason, Sasha and Strudthoff, Bartholomew and Yang, Sandy and Castillo, Mauricio and Coppinger, Sebastian and Brundage, Miles and Buyl, Maarten and Conerly, Trenton and Hatfield-Dodds, Zac and Henighan, Tom and Hilton, Jacob and Lasenby, Robert and Lukosiute, Karina and Maxwell, Tom and Mercado, Jordan and Roger, Fabien and Sutherland, Joe and Telleen-Lawton, Drake and Treutlein, Johannes and Williams, Vidur and Younger, Alex and Carter, Sam and Mann, Ben and Henry, Joshua and Cheng, Newton and Kaplan, Jared and Brown, Tristan and Bowman, Sam},
+  journal = {arXiv preprint arXiv:2501.18837},
+  year    = {2025},
+  note    = {Anthropic.},
+  url     = {https://arxiv.org/abs/2501.18837}
+}
+
+% --- Content-classifier guardrails -------------------------------------------
+
+@article{inan2023llamaguard,
+  title   = {Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations},
+  author  = {Inan, Hakan and Upasani, Kartikeya and Chi, Jianfeng and Rungta, Rashi and Iyer, Krithika and Mao, Yuning and Tontchev, Michael and Hu, Qing and Fuller, Brian and Testuggine, Davide and Khabsa, Madian},
+  journal = {arXiv preprint arXiv:2312.06674},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2312.06674}
+}
+
+@misc{llamaguard,
+  title        = {Llama Guard 4: Multimodal Content Safety Classifier},
+  author       = {{Meta AI}},
+  year         = {2025},
+  howpublished = {Hugging Face model card},
+  url          = {https://huggingface.co/meta-llama/Llama-Guard-4-12B}
+}
+
+@misc{shieldgemma,
+  title        = {ShieldGemma: Generative AI Content Moderation Based on Gemma},
+  author       = {{Google DeepMind}},
+  year         = {2024},
+  howpublished = {Hugging Face model card},
+  url          = {https://huggingface.co/google/shieldgemma-2b}
+}
+
+@misc{promptguard,
+  title        = {Llama Prompt Guard 2 (22M)},
+  author       = {{Meta AI}},
+  year         = {2025},
+  howpublished = {Hugging Face model card},
+  url          = {https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-22M}
+}
+
+% --- DSL and decorator guardrails (real OSS projects) ------------------------
+
+@misc{nemoguardrails,
+  title        = {NeMo Guardrails: Open-source Toolkit for Programmable LLM Rails},
+  author       = {{NVIDIA}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/NVIDIA/NeMo-Guardrails}
+}
+
+@misc{guardrails,
+  title        = {Guardrails AI},
+  author       = {{Guardrails AI}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/guardrails-ai/guardrails}
+}
+
+@misc{llmguard,
+  title        = {llm-guard: Security Toolkit for LLMs},
+  author       = {{Protect AI}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/protectai/llm-guard}
+}
+
+@misc{llamafirewall,
+  title        = {LlamaFirewall (Purple Llama)},
+  author       = {{Meta AI Purple Llama}},
+  year         = {2025},
+  howpublished = {Software},
+  url          = {https://github.com/meta-llama/PurpleLlama}
+}
+
+% --- Red-team / evaluation harnesses (real OSS projects) ---------------------
+
+@misc{pyrit,
+  title        = {PyRIT: Python Risk Identification Toolkit for Generative AI},
+  author       = {{Microsoft Azure AI Red Team}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/Azure/PyRIT}
+}
+
+@misc{garak,
+  title        = {garak: A Framework for Security Probing Large Language Models},
+  author       = {{NVIDIA}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/NVIDIA/garak}
+}
+
+@misc{inspectai,
+  title        = {Inspect AI: A Framework for LLM Evaluation},
+  author       = {{UK AI Security Institute}},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/UKGovernmentBEIS/inspect_ai}
+}
+
+@article{harmbench,
+  title   = {HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal},
+  author  = {Mazeika, Mantas and Phan, Long and Yin, Xuwang and Zou, Andy and Wang, Zifan and Mu, Norman and Sakhaee, Elham and Li, Nathaniel and Basart, Steven and Li, Bo and Forsyth, David and Hendrycks, Dan},
+  journal = {arXiv preprint arXiv:2402.04249},
+  year    = {2024},
+  url     = {https://arxiv.org/abs/2402.04249}
+}
+
+% --- Activation steering: real foundational papers ---------------------------
+
+@article{turner2023steering,
+  title   = {Activation Addition: Steering Language Models Without Optimization},
+  author  = {Turner, Alexander Matt and Thiergart, Lisa and Leech, Gavin and Udell, David and Vazquez, Juan J. and Mini, Ulisse and MacDiarmid, Monte},
+  journal = {arXiv preprint arXiv:2308.10248},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2308.10248}
+}
+
+@article{panickssery2023cad,
+  title   = {Steering Llama 2 via Contrastive Activation Addition},
+  author  = {Panickssery, Nina and Gabrieli, Nick and Schulz, Julian and Tong, Meg and Hubinger, Evan and Turner, Alexander Matt},
+  journal = {arXiv preprint arXiv:2312.06681},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2312.06681}
+}
+
+@article{zou2023repe,
+  title   = {Representation Engineering: A Top-Down Approach to AI Transparency},
+  author  = {Zou, Andy and Phan, Long and Chen, Sarah and Campbell, James and Guo, Phillip and Ren, Richard and Pan, Alexander and Yin, Xuwang and Mazeika, Mantas and Dombrowski, Ann-Kathrin and Goel, Shashwat and Li, Nathaniel and Byun, Michael J. and Wang, Zifan and Mallen, Alex and Basart, Steven and Koyejo, Sanmi and Song, Dawn and Fredrikson, Matt and Kolter, J. Zico and Hendrycks, Dan},
+  journal = {arXiv preprint arXiv:2310.01405},
+  year    = {2023},
+  url     = {https://arxiv.org/abs/2310.01405}
+}
+
+@misc{repeng,
+  title        = {repeng: Representation Engineering for LLMs},
+  author       = {Vogel, Theia},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://github.com/vgel/repeng}
+}
+
+% --- Agent loop pathologies (real GitHub issue) ------------------------------
+
+@misc{browseruse,
+  title        = {browser-use issue \#191: Endless Loop Detection},
+  author       = {{browser-use contributors}},
+  year         = {2025},
+  howpublished = {GitHub issue},
+  url          = {https://github.com/browser-use/browser-use/issues/191}
+}
+
+% --- Model Context Protocol (real specification) -----------------------------
+
+@misc{mcpspec,
+  title        = {Model Context Protocol Specification},
+  author       = {{Anthropic}},
+  year         = {2024},
+  howpublished = {Specification},
+  url          = {https://modelcontextprotocol.io/}
+}

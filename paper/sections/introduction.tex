@@ -1,0 +1,94 @@
+Production LLM agents in 2025 and 2026 spend most of their compute
+in a tool loop. Untrusted text from emails, retrieval hits, web
+pages, Model Context Protocol servers, and other agents gets
+concatenated into the context window. That context then decides
+which tool runs next, with which arguments. This is fragile in a
+specific, well-studied way: indirect prompt injection
+\citep{greshake2023, liu2023prompt}. An attacker who controls a
+single document in the agent's retrieval-augmented context can
+subvert privileged tools through instruction smuggling, and no
+amount of careful prompt engineering at the host side fixes it.
+
+The standard defense, and the one almost every OSS guardrail library
+has chosen, is to treat injection as a classification problem.
+Llama Prompt Guard 2, ShieldGemma, Llama Guard 4
+\citep{inan2023llamaguard}, OpenAI Moderation, Azure AI Content
+Safety, and dozens of community classifiers sit somewhere on this
+spectrum. But the AgentDojo evaluation
+\citep{debenedetti2024agentdojo} shows the ceiling: even with a
+classifier in front, GPT-4o drops from 69\% utility to 45\% under
+injection, and attack success rates on canonical patterns like
+``important-message'' stay above 50\%. The structural problem is
+that an attacker with adversarial input can iterate against a
+classifier, and the classifier has bounded capacity to tell content
+apart from instruction.
+
+The research literature, meanwhile, has moved toward a different
+abstraction. CaMeL \citep{camel2025} treats indirect injection as
+an information-flow problem. Untrusted data carries labels
+(provenance, capability, integrity), and the runtime enforces that
+no untrusted-derived control flow can reach a privileged tool.
+Where classifier defenses degrade gracefully under attack, IFC
+defeats indirect injection by construction: a tool whose arguments
+carry an UNTRUSTED label simply does not execute. CaMeL reports
+near-zero attack success on AgentDojo at roughly 2.7$\times$ token
+cost.
+
+None of this work ships as a library you can install with one line.
+That alone would be enough motivation for AIsafePy.flow. But IFC
+isn't the only gap. Two others matter equally in 2026.
+
+\paragraph{Streaming guardrails are still wrong by default.}
+Voice agents, IDE assistants, and agentic CLIs stream tokens.
+Existing guardrails either buffer the full response and rerun a
+classifier (sacrificing time-to-first-token) or run guards in
+parallel and risk leaking violative tokens before cancellation.
+A streaming-native design that forecasts likely continuations and
+stops at the first signal of harm is the right shape, but no
+open-source library packages this end-to-end with a tiered cascade,
+explicit latency budgets, and white-box activation probes for
+self-hosted models.
+
+\paragraph{Eval-to-guardrail compilation is a manual workflow.}
+PyRIT, Garak, and Inspect AI produce JSONL logs of failures.
+Promoting those failures into runtime guards (classifiers, regexes,
+policy rules, steering vectors) is currently a two-engineer-day
+process. Galileo Luna-2 and Lakera Red$\rightarrow$Guard sell this
+automation as a commercial moat. No open-source equivalent exists.
+
+\paragraph{Contributions.} This paper presents AIsafePy, an
+Apache-2.0 Python library that targets all three gaps. The
+contributions are:
+
+\begin{enumerate}[leftmargin=2em, itemsep=0.25em]
+  \item The first OSS implementation of CaMeL-style capability-based
+    IFC as drop-in adapters for OpenAI Agents SDK, LangGraph,
+    LlamaIndex, Anthropic tools, and MCP servers
+    (Section~\ref{sec:design}, \texttt{aisafepy.flow}).
+
+  \item A three-tier streaming guardrail pipeline with an explicit
+    p95 latency budget, structured \texttt{GuardDecision} outputs,
+    and optional white-box activation probes for self-hosted models
+    (Section~\ref{sec:design}, \texttt{aisafepy.stream}).
+
+  \item A continuous eval-to-guardrail compiler that emits four
+    runtime artifact modalities (classifier, regex, policy, steering
+    vector) from PyRIT, Garak, Inspect, and Langfuse sources
+    (Section~\ref{sec:design}, \texttt{aisafepy.adapt}).
+
+  \item An MCP-aware tool-poisoning defense combining static
+    description screening with hashed-manifest drift detection,
+    aligned with the Model Context Protocol specification
+    \citep{mcpspec} and community-reported attack patterns
+    against MCP servers.
+
+  \item An evaluation roadmap and a public benchmarking harness
+    targeting AgentDojo, HarmBench, and a streaming-guard latency
+    benchmark, with reproducibility instructions in the repository.
+\end{enumerate}
+
+Section~\ref{sec:related} positions AIsafePy against prior work.
+Section~\ref{sec:design} describes the system design.
+Section~\ref{sec:implementation} covers implementation choices.
+Section~\ref{sec:evaluation} presents the evaluation roadmap.
+Section~\ref{sec:discussion} lists what the library does not solve.
