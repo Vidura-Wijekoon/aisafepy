@@ -65,3 +65,8 @@ data/*
 scratch/
 tmp/
 *.log
+
+# private + build output
+awards/
+examples/safeops/docs/
+examples/safeops/dist/

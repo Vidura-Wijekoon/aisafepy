@@ -1,0 +1,77 @@
+---
+# Publishes the SafeOps demo to GitHub Pages on every push to main.
+#
+# Install: copy this file to .github/workflows/pages.yml, then in the repo go to
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+#
+# The page is rebuilt from source each time, so what visitors see is always a
+# real run of the committed code — it cannot drift from the library.
+
+name: Publish SafeOps demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/safeops/**"
+      - "src/aisafepy/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a half-finished deployment; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the library from source
+        run: pip install -e .
+
+      - name: Run the demo's own tests
+        # If the attacks stop working, or stop being blocked, do not publish.
+        working-directory: examples/safeops
+        run: |
+          pip install pytest
+          python -m pytest tests/ -q
+
+      - name: Build the static page
+        working-directory: examples/safeops
+        run: python build_static.py --out ../../_site
+
+      - name: Verify the page is self-contained
+        # No external requests: a judge on hotel wifi should still see it, and
+        # the page must not leak visitor traffic to third parties.
+        run: |
+          if grep -Eq 'src="https?://|href="https?://[^"]*\.(css|js)' _site/index.html; then
+            echo "::error::index.html references an external asset"
+            exit 1
+          fi
+          echo "self-contained: $(du -h _site/index.html | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
