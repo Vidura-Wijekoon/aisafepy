@@ -8,6 +8,7 @@
   <a href="https://pypi.org/project/aisafepy/"><img src="https://img.shields.io/pypi/dm/aisafepy.svg?color=informational" alt="PyPI downloads"/></a>
   <a href="https://github.com/Vidura-Wijekoon/aisafepy/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vidura-Wijekoon/aisafepy.svg" alt="License: Apache-2.0"/></a>
   <a href="https://github.com/Vidura-Wijekoon/aisafepy/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Vidura-Wijekoon/aisafepy/ci.yml?branch=main&label=CI" alt="CI status"/></a>
+  <a href="https://vidura-wijekoon.github.io/aisafepy"><img src="https://img.shields.io/badge/live%20demo-try%20it%20now-brightgreen?style=flat" alt="Live demo"/></a>
   <a href="https://github.com/Vidura-Wijekoon/aisafepy/stargazers"><img src="https://img.shields.io/github/stars/Vidura-Wijekoon/aisafepy.svg?style=social" alt="GitHub stars"/></a>
 </p>
 
@@ -16,12 +17,27 @@
   <a href="#quickstart">Quickstart</a> ·
   <a href="#layout">Layout</a> ·
   <a href="#design-principles">Design</a> ·
+  <a href="https://vidura-wijekoon.github.io/aisafepy"><b>Live demo</b></a> ·
   <a href="docs/CAVEATS.md">Caveats</a>
 </p>
 
 # AIsafePy
 
 **Capability-based information-flow control, streaming-native cascaded guardrails, and a continuous eval-to-guardrail compiler for LLM agents.**
+
+> ## ▶ Watch an AI agent get hijacked, then watch it refuse
+>
+> **[https://vidura-wijekoon.github.io/aisafepy](https://vidura-wijekoon.github.io/aisafepy)**
+>
+> A tool-using agent for a fintech back office reads one hostile email and wires
+> **LKR 250,000 to an attacker**. Then the same agent, same email, same planner, runs
+> behind AIsafePy - and the call becomes impossible rather than merely unlikely.
+>
+> Four live traces. Two attacks, two legitimate tasks that still complete. No signup,
+> nothing to install, and every trace is a real run of the code in this repository.
+>
+> **Takes 60 seconds. Try to break it.**
+
 
 AIsafePy fills three gaps that the existing OSS guardrails ecosystem (NeMo, Guardrails AI, llm-guard, LlamaFirewall, OpenAI Guardrails) has not closed:
 
