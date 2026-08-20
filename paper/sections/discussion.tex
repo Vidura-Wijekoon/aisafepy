@@ -1,0 +1,108 @@
+AIsafePy reduces risk in measurable, well-scoped ways. It does not
+provide provable security. This section lists what the library does
+not do, the assumptions it makes, and how deployers should think
+about residual risk.
+
+\subsection{Limits of capability-based IFC}
+
+CaMeL-style IFC depends on an assumption that the privileged LLM
+(P-LLM) emits only the constrained action DSL. If the planner gets
+jailbroken into emitting raw natural-language reasoning that the
+host code then evaluates, the guarantees degrade to whatever the
+host's parser is willing to accept. AIsafePy's adapter layer
+protects against this in a layered way: tool arguments are wrapped
+in \texttt{Tainted} values at the SDK boundary regardless of how
+the planner reasoned, and the policy's
+\texttt{control\_flow\_integrity} requirement still rejects calls
+that came from UNTRUSTED context. But there are legitimate
+adversarial workflows where the LLM produces tool arguments that,
+on the surface, appear TRUSTED. Those get caught by deny-if
+predicates, by capability mismatches, or, in mediated mode, by the
+human approver.
+
+CaMeL reports about $2.7\times$ token overhead. This is a real cost.
+Deployers should plan for it and instrument utility before and
+after enabling \texttt{aisafepy.flow}.
+
+Even system-level defenses can be bypassed by obfuscation,
+encoded payloads, or attacks against the planner's parsing rules.
+AIsafePy.flow reduces the attack surface significantly but does
+not eliminate it. The honest framing is ``architectural defense
+in depth,'' not ``injection is solved.''
+
+\subsection{Limits of streaming forecasters}
+
+Forecasting-based streaming detectors require either Monte-Carlo
+rollouts or token-level supervision at training time. The v0.1
+release ships pre-trained forecaster wrappers and a recipe for
+retraining, not a fully automated training pipeline. Practitioners
+who want to retrain on their domain-specific unsafe distribution
+have to follow the recipe documented in the \texttt{forecasters}
+module docstring.
+
+Activation probes are model-specific. A linear probe trained on
+Llama-3-8B does not transfer to Qwen3-8B. We document this in the
+package and ship a small set of pre-trained probes per popular
+open-weights family in a separate model zoo.
+
+\subsection{Limits of the eval-to-guardrail compiler}
+
+The compiler's output is only as good as the cluster boundaries it
+finds. HDBSCAN does well on most realistic red-team logs we have
+tested, but adversarially designed attacks that spread across many
+small clusters can dilute the signal. The current implementation
+has a \texttt{min\_attack\_success\_rate} threshold below which
+clusters are dropped; tuning this is a deployment decision.
+
+Steering-vector deployment works for self-hosted models only. For
+hosted APIs the compiler falls back to classifier, regex, and
+deliberative-case targets. The mean-difference baseline we ship
+matches the simplest contrastive activation addition recipe
+\citep{panickssery2023cad}; users running conditional or
+representation-engineering variants should substitute their own
+training loop.
+
+The canary deployment checks the false-positive rate against a
+labeled benign baseline. If the baseline is unrepresentative of
+production traffic, the rollback signal is unreliable. We recommend
+constructing the baseline from logged production traces specifically
+marked as benign.
+
+\subsection{Adversarial false positives}
+
+Short adversarial prompts can drive content classifiers to block a
+large fraction of benign traffic, producing a denial-of-service
+vector that targets the guardrail rather than the underlying model.
+AIsafePy.stream mitigates this with three structural defenses: an
+input-length cap on every Tier-1 regex guard, regex-catastrophic-
+backtracking protection through the same cap, and a planned per-IP
+false-positive-rate monitor in the upcoming v0.2 release. The
+underlying classifier vulnerability is not eliminated. We recommend
+deployers pair the cascade with rate limiting at the request edge.
+
+\subsection{What AIsafePy does not solve}
+
+AIsafePy does not solve sleeper-agent or deceptive-alignment
+problems. The right frame is ``defense in depth with measurable
+risk reduction.''
+
+Compliance certification (OWASP top-10 for LLMs, NIST AI RMF, EU AI
+Act) is downstream of the technical primitives. The library
+provides audit-log artifacts that help compliance teams, but
+certification itself belongs to a separate process.
+
+The library does not solve hosted-API governance. If a provider
+rotates a model behind the same API endpoint, AIsafePy can detect
+behavioral drift via the production-traces adapter but cannot
+prevent the rotation.
+
+\subsection{Composition with other defenses}
+
+AIsafePy is designed to compose, not to compete. The recommended
+deployment pairs \texttt{flow} (architectural) with \texttt{stream}
+(detective) and a periodic \texttt{adapt} run (continuous).
+External classifiers from \texttt{contrib/} sit inside
+\texttt{stream}'s tiers. PyRIT continues to drive \texttt{adapt}.
+Inspect AI continues to drive evaluation. The library's value is
+the connective tissue, not a replacement for any specific upstream
+tool.

@@ -1,0 +1,65 @@
+AIsafePy is implemented in pure Python (3.10+) with approximately
+5,000 lines of source code across 38 modules. The required runtime
+dependencies are small: \texttt{pydantic}, \texttt{anyio},
+\texttt{opentelemetry-api}, \texttt{tenacity}, and
+\texttt{typing-extensions}. Heavier dependencies (Transformers, Torch,
+HDBSCAN, sentence-transformers, scikit-learn) live behind optional
+extras (\texttt{[stream]}, \texttt{[probes]}, \texttt{[adapt]}) so a
+deployment in a constrained environment (such as a 512MB AWS Lambda
+function) can use the deterministic regex and IFC paths without any
+ML dependencies.
+
+\paragraph{Public API surface.} The library exposes only what is
+needed at each call site. \texttt{aisafepy.core} re-exports the
+shared types; submodules are imported lazily on first attribute
+access (Python's \texttt{\_\_getattr\_\_} module hook) so
+\texttt{import aisafepy} is cheap even on machines where Torch is
+installed. This matters in serverless cold-start scenarios.
+
+\paragraph{Async-first.} Guards conform to the
+\texttt{Callable[[Context], Awaitable[GuardDecision]]} protocol. The
+pipeline runs guards within a tier in parallel via
+\texttt{asyncio.gather}. Synchronous callers use \texttt{run\_sync},
+which detects an already-running event loop and offloads to a worker
+thread to avoid deadlocking under pytest-asyncio or Jupyter.
+
+\paragraph{Adapter pattern for frameworks.} Each agent-framework
+adapter is around 200 lines and follows the same shape: locate the
+tool's callable, wrap it with a check-then-call proxy, register a
+lifecycle hook for IFC context propagation, and attach a sentinel
+attribute (\texttt{\_\_aisafepy\_policy\_\_}) so subsequent calls can
+inspect the binding. The MCP adapter additionally patches the
+server-side \texttt{add\_tool} and \texttt{handle\_call\_tool}
+methods.
+
+\paragraph{Testing.} The unit test suite has 59 tests covering core
+primitives, IFC enforcement (including the AgentDojo
+``important-message'' attack pattern), deterministic regex guards,
+the cascading pipeline, adapter clustering, and the audit-log
+hash-chain invariant. The full test suite runs in $<$1 second on
+commodity hardware. Continuous integration runs on Python 3.10, 3.11,
+and 3.12 in parallel.
+
+\paragraph{Linting and reproducibility.} The repository uses
+\texttt{ruff} for linting and formatting and pins a deterministic
+toolchain in \texttt{pyproject.toml}. The
+\texttt{[tool.hatch.build.targets.sdist]} section explicitly enumerates
+the directories shipped in the sdist (source, tests, examples,
+policies, docs) so downstream auditors can reproduce the artifact
+from the GitHub tag.
+
+\paragraph{Documentation and examples.} Four runnable examples
+exercise each module end to end:
+\texttt{flow\_\allowbreak openai\_\allowbreak agents.py}
+demonstrates the indirect-injection attack and the IFC block;
+\texttt{stream\_\allowbreak cascade.py} runs a three-tier
+pipeline on a simulated streamed response;
+\texttt{adapt\_\allowbreak pyrit\_\allowbreak to\_\allowbreak guards.py}
+compiles a fabricated PyRIT-style log into runnable artifacts; and
+\texttt{loop\_\allowbreak detection.py} demonstrates progress-tracker
+triggers.
+
+\paragraph{Distribution.} The library is published on PyPI under
+\texttt{aisafepy}. The default \texttt{pip install aisafepy}
+installs only the core. Extras follow the standard
+\texttt{aisafepy[stream]} pattern.
