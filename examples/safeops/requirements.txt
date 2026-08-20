@@ -1,0 +1,5 @@
+aisafepy>=0.1.0
+# optional, only for `--llm`:
+# openai>=1.0
+# optional, only for tests:
+# pytest>=8
