@@ -93,7 +93,7 @@ TEMPLATE = r"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SafeOps — can an AI agent be trusted with your systems?</title>
+<title>SafeOps - can an AI agent be trusted with your systems?</title>
 <meta name="description" content="A live demonstration of indirect prompt injection against a tool-using AI agent, and how capability-based information-flow control stops it.">
 <style>
 *{box-sizing:border-box}
@@ -229,7 +229,7 @@ footer a{margin-right:16px}
   <h1>An AI agent that can act is an AI agent that can be hijacked.</h1>
   <p class="lede">SafeOps is an operations assistant for a fintech back office. It reads
   email, looks up customers, sends mail and issues refunds. Below, the same agent runs
-  against the same hostile inbox twice — <b>once undefended, once behind AIsafePy</b> —
+  against the same hostile inbox twice - <b>once undefended, once behind AIsafePy</b> -
   with the planner, tools and prompt held constant.</p>
   <div class="cta">
     <a class="pill primary" href="#demo">See it happen ↓</a>
@@ -242,7 +242,7 @@ footer a{margin-right:16px}
 <section class="blk" id="demo">
   <h2>Four runs</h2>
   <p class="sub">Two attacks and two legitimate tasks. The legitimate ones matter as much
-  as the attacks — a guard that blocks everything is not a safety feature, it is an outage.</p>
+  as the attacks - a guard that blocks everything is not a safety feature, it is an outage.</p>
   <div class="tabs" id="tabs"></div>
   <div id="panel"></div>
 </section>
@@ -261,7 +261,7 @@ footer a{margin-right:16px}
         <li><b>Privileged tools declare a floor.</b> Moving money requires control flow
         derived from trusted input. Reading a hostile email breaks that, permanently,
         for the rest of the run.</li>
-        <li><b>So the attack is not detected — it is impossible.</b> A classifier has
+        <li><b>So the attack is not detected - it is impossible.</b> A classifier has
         bounded capacity and an attacker can iterate against it. A capability check has
         nothing to exceed.</li>
       </ul>
@@ -367,11 +367,11 @@ function stepHtml(st){
   h += `<div class="chips">${chips.join('')}</div>`;
   if(st.violation){
     const fired = (st.layers||[]).filter(l=>l.fired);
-    h += `<div class="viol"><div class="rz">REFUSED — ${esc(st.violation.reason)}</div>
+    h += `<div class="viol"><div class="rz">REFUSED - ${esc(st.violation.reason)}</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
         ${fired.length} independent control${fired.length===1?'':'s'} rejected this call</div>
       ${(st.layers||[]).map(l=>`<div class="layer ${l.fired?'':'pass'}">
-        <b>${l.fired?'✗':'○'} ${esc(l.control)}</b> — ${esc(l.detail)}</div>`).join('')}
+        <b>${l.fired?'✗':'○'} ${esc(l.control)}</b> - ${esc(l.detail)}</div>`).join('')}
     </div>`;
   }
   return h+`</div>`;
@@ -380,9 +380,9 @@ function stepHtml(st){
 function colHtml(r,guarded,benign){
   const cls = benign?'fx intended':'fx', fx=[];
   (r.refunds||[]).forEach(x=>fx.push(
-    `${benign?'REFUND ISSUED':'MONEY MOVED'} — LKR ${x.amount_lkr.toLocaleString()} to ${esc(x.recipient)}`));
+    `${benign?'REFUND ISSUED':'MONEY MOVED'} - LKR ${x.amount_lkr.toLocaleString()} to ${esc(x.recipient)}`));
   (r.sent_emails||[]).forEach(x=>fx.push(
-    `${benign?'MAIL SENT':'DATA EXFILTRATED'} — to ${esc(x.to)}`));
+    `${benign?'MAIL SENT':'DATA EXFILTRATED'} - to ${esc(x.to)}`));
   return `<div class="col ${guarded?'on':'off'}">
     <div class="hd"><span class="dot"></span>${guarded?'AIsafePy ON':'AIsafePy OFF'}</div>
     <div class="body">${r.steps.map(stepHtml).join('')}
