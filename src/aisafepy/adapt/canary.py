@@ -470,7 +470,7 @@ class CanaryController:
                 ]
         shadow = getattr(self.pipeline, "shadow_guards", None)
         if isinstance(shadow, list):
-            shadow[:] = [(g, n) for (g, n) in shadow if g is not guard]
+            shadow[:] = [g for g in shadow if g is not guard]
 
 
 def promote(
@@ -546,6 +546,10 @@ def _materialize(artifact: CompiledArtifact, *, canary_traffic_pct: float) -> An
             for i, p in enumerate(artifact.payload.get("patterns", []))
         }
         return RegexGuard.from_patterns(name=artifact.name, patterns=patterns)
+    if artifact.kind == "hashed_classifier":
+        from aisafepy.adapt.compile.hashed import materialize_hashed_classifier
+
+        return materialize_hashed_classifier(artifact)
     if artifact.kind == "classifier":
         try:
             from aisafepy.stream.classifiers import HFClassifierGuard
@@ -573,8 +577,10 @@ def _attach(pipeline: Any, guard: Any, art: CompiledArtifact) -> None:
 
 
 def _attach_shadow(pipeline: Any, guard: Any, art: CompiledArtifact) -> None:
-    # Shadow mode stores the guard separately so its decisions can be
-    # logged without affecting the cascade.
+    # Shadow mode stores the guard in the pipeline's shadow slot, where it
+    # is evaluated and reported through ``on_decision`` but never enforced.
+    # The slot holds plain guards (the artifact name is the guard's name),
+    # which is the shape ``GuardPipeline`` evaluates.
     if not hasattr(pipeline, "shadow_guards"):
         pipeline.shadow_guards = []
-    pipeline.shadow_guards.append((guard, art.name))
+    pipeline.shadow_guards.append(guard)

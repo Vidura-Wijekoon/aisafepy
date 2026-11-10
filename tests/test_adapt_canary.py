@@ -72,7 +72,7 @@ def test_start_shadow_stores_guard_on_pipeline(tmp_path: Path):
     res = ctrl.start(shadow=True)
     assert res.shadow_only == ["regex-0"]
     assert pipe.tier1 == []
-    assert [n for _, n in pipe.shadow_guards] == ["regex-0"]
+    assert [g.name for g in pipe.shadow_guards] == ["regex-0"]
 
 
 @pytest.mark.asyncio
@@ -197,7 +197,7 @@ def test_promote_all_requires_fp_evidence(tmp_path: Path):
     promoted = ctrl.promote_all()
     assert promoted == ["regex-0"]
     assert [g.name for g in pipe.tier1] == ["regex-0"]
-    assert [n for _, n in pipe.shadow_guards] == ["regex-1"]
+    assert [g.name for g in pipe.shadow_guards] == ["regex-1"]
     assert ctrl.stats["regex-1"].status == "shadow"
     assert ctrl.promote_all(require_fp_ok=False) == ["regex-1"]
     assert pipe.shadow_guards == []
