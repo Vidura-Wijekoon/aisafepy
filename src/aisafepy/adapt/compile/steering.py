@@ -32,13 +32,18 @@ class _SteeringTarget:
         if len(positives) < 8:
             return None
 
+        # Without benign records in the cluster we fall back to a
+        # self-contrast against the first few positives. Record the set
+        # that is actually used so a deferred training spec is faithful.
+        contrast_negatives = negatives or positives[:4]
+
         path: Any
         try:
             path = _train_steering_vector(
                 model_id=self.model,
                 layers=self.layers,
                 positives=positives,
-                negatives=negatives or positives[:4],  # fall back to self-contrast
+                negatives=contrast_negatives,
                 method=self.method,
                 out_dir=Path(self.out_dir),
                 cluster_label=cluster.label,
@@ -60,7 +65,8 @@ class _SteeringTarget:
                         "layers": list(self.layers),
                         "method": self.method,
                         "positives": positives,
-                        "negatives": negatives,
+                        "negatives": contrast_negatives,
+                        "self_contrast": not negatives,
                     },
                 },
             )
