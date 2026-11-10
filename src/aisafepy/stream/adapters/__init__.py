@@ -12,6 +12,7 @@ Module            Targets
 ``anthropic``     Messages API event streams and ``Message`` objects
 ``openai_agents`` OpenAI Agents SDK input / output guardrail callables
 ``langchain``     a ``Runnable``-shaped wrapper for LangChain chains
+``langchain_callbacks`` a streaming callback handler for LangChain models
 ``llamaindex``    a response post-processor for LlamaIndex
 ``asgi``          ASGI 3 middleware (FastAPI, Starlette, Quart, Litestar)
 ================  ==========================================================
@@ -24,6 +25,11 @@ from aisafepy.stream.adapters.anthropic import (
 )
 from aisafepy.stream.adapters.asgi import GuardrailMiddleware
 from aisafepy.stream.adapters.langchain import GuardrailRunnable, as_langchain_runnable
+from aisafepy.stream.adapters.langchain_callbacks import (
+    AsyncGuardrailCallbackHandler,
+    GuardrailCallbackHandler,
+    GuardrailTripped,
+)
 from aisafepy.stream.adapters.llamaindex import (
     GuardrailPostprocessor,
     as_llamaindex_postprocessor,
@@ -37,9 +43,12 @@ from aisafepy.stream.adapters.openai_chat import (
 )
 
 __all__ = [
+    "AsyncGuardrailCallbackHandler",
+    "GuardrailCallbackHandler",
     "GuardrailMiddleware",
     "GuardrailPostprocessor",
     "GuardrailRunnable",
+    "GuardrailTripped",
     "StreamOutcome",
     "aguard_chat_completion_stream",
     "aguard_messages_stream",

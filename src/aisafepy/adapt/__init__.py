@@ -53,10 +53,12 @@ from aisafepy.adapt.sources import (
     dedupe_records,
     merge_sources,
 )
+from aisafepy.adapt.sources_otlp import DecisionLogSource, OTLPSpanSource
 
 __all__ = [
     # sources
     "CSVSource",
+    "DecisionLogSource",
     "DeepEvalSource",
     "FailureRecord",
     "GarakReport",
@@ -64,6 +66,7 @@ __all__ = [
     "InspectLog",
     "JSONLSource",
     "LangfuseTraces",
+    "OTLPSpanSource",
     "ProductionTraces",
     "PromptfooSource",
     "PyRITSource",

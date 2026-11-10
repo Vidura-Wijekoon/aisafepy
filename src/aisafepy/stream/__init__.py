@@ -27,20 +27,24 @@ extended across turns with :class:`SessionGuard`.
 
 # Subpackages exported as namespaces.
 from aisafepy.stream import (
+    cache,
     classifiers,
     config,
     encoding,
     forecasters,
+    hashed_classifier,
     heuristics,
     injection,
     judge,
     metrics,
     normalize,
+    pii,
     probes,
     secrets,
     session,
     toolcalls,
 )
+from aisafepy.stream.cache import CachedGuard, DecisionCache, cache_guards, cached_pipeline
 from aisafepy.stream.config import (
     ConfigError,
     GuardRegistry,
@@ -58,6 +62,7 @@ from aisafepy.stream.deterministic import (
     SchemaGuard,
 )
 from aisafepy.stream.encoding import INJECTION_PHRASES, EncodingGuard
+from aisafepy.stream.hashed_classifier import HashedNGramClassifierGuard, TrainingReport
 from aisafepy.stream.heuristics import (
     CharsetGuard,
     JSONDepthGuard,
@@ -88,6 +93,7 @@ from aisafepy.stream.metrics import (
     decision_rate_summary,
 )
 from aisafepy.stream.normalize import Normalized, Normalizer, normalize_for_matching
+from aisafepy.stream.pii import PIIDetector, PIIGuard, PIIMatch
 from aisafepy.stream.pipeline import (
     Context,
     Guard,
@@ -117,6 +123,9 @@ __all__ = [
     "RegexGuard",
     "SchemaGuard",
     # tier-1 content guards
+    "PIIDetector",
+    "PIIGuard",
+    "PIIMatch",
     "CharsetGuard",
     "EncodingGuard",
     "INJECTION_PHRASES",
@@ -142,6 +151,14 @@ __all__ = [
     "Normalized",
     "Normalizer",
     "normalize_for_matching",
+    # tier-2 pure-Python classifier
+    "HashedNGramClassifierGuard",
+    "TrainingReport",
+    # decision cache
+    "CachedGuard",
+    "DecisionCache",
+    "cache_guards",
+    "cached_pipeline",
     # configuration
     "ConfigError",
     "GuardRegistry",
@@ -170,15 +187,18 @@ __all__ = [
     "SessionStore",
     # adapters and namespaces
     "as_openai_output_guardrail",
+    "cache",
     "classifiers",
     "config",
     "encoding",
     "forecasters",
+    "hashed_classifier",
     "heuristics",
     "injection",
     "judge",
     "metrics",
     "normalize",
+    "pii",
     "probes",
     "secrets",
     "session",
