@@ -7,7 +7,6 @@ viva and know the demo will do what you are about to claim it does.
 from __future__ import annotations
 
 import pytest
-
 from safeops.agent import run
 from safeops.scenarios import BY_KEY, SCENARIOS
 from safeops.world import fresh_world
@@ -135,10 +134,9 @@ def test_static_build_matches_a_live_run(tmp_path):
 def test_hidden_payload_is_shown_verbatim_on_the_page():
     """The page claims to show what the model saw. It must not paraphrase."""
     from build_static import build_data
-
     from safeops.world import fresh_world
 
     data = build_data()
-    for page_email, real in zip(data["emails"], fresh_world().inbox):
+    for page_email, real in zip(data["emails"], fresh_world().inbox, strict=False):
         assert page_email["hidden"] == real.hidden
         assert page_email["human"] == real.human_visible_text

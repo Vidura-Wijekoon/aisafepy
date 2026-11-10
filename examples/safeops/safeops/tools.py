@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from aisafepy.flow import Capability, Tainted, secure_tool
 from aisafepy.flow.taint import lift
-
 from safeops.world import World
 
 # --------------------------------------------------------------------------

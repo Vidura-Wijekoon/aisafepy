@@ -19,7 +19,6 @@ from aisafepy.flow.interpreter import (
     evaluate_call,
 )
 from aisafepy.flow.taint import _meet  # integrity lattice meet
-
 from safeops.planner import Action, ScriptedPlanner
 from safeops.policy import build_policy
 from safeops.tools import PRIVILEGED, TOOLS
