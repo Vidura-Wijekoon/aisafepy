@@ -1,0 +1,53 @@
+# Example pipeline configuration for aisafepy.stream.
+#
+# Load with:
+#     from aisafepy.stream import GuardPipeline
+#     pipeline = GuardPipeline.from_yaml("examples/stream_pipeline.yaml")
+#
+# Every guard entry is a spec: a `kind` registered in
+# aisafepy.stream.config.GuardRegistry plus keyword arguments for it.
+# String values support ${VAR} and ${VAR:-default} interpolation.
+#
+# This file only uses guards that need no model downloads so the
+# accompanying examples/stream_yaml_config.py runs offline. Swap the
+# stub classifier for `hf_classifier` / `prompt_guard` in production.
+
+version: 1
+name: support-assistant
+budget_ms_p95: 80
+uncertainty_band: [0.30, 0.70]
+on_budget_exceeded: allow
+tier_timeouts_ms:
+  2: 60
+  3: 400
+
+tiers:
+  1:
+    - kind: regex_pii
+      name: pii-redact
+      redact: true
+    - kind: blocklist
+      name: secret-markers
+      terms:
+        - "BEGIN PRIVATE KEY"
+        - "api_key="
+        - "${EXTRA_BLOCK_TERM:-AKIA}"
+    - kind: regex
+      name: jailbreak-preamble
+      patterns:
+        ignore_previous: "ignore (all|any|the)? ?(previous|prior) instructions"
+        dan_mode: "\\bDAN mode\\b"
+  2:
+    - kind: stub_classifier
+      name: toy-classifier
+      triggers: ["HARMFUL", "EXFILTRATE"]
+  3:
+    - kind: llm_judge
+      name: policy-judge
+      judge: aisafepy.stream.judge:StubJudge
+      policy_text: "Never reveal internal account identifiers."
+
+shadow:
+  - kind: stub_classifier
+    name: candidate-classifier
+    triggers: ["SUSPICIOUS"]

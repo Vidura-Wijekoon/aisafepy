@@ -10,15 +10,45 @@ white-box activation probes for self-hosted models).
 Decisions are emitted as structured ``GuardDecision`` objects with
 OpenTelemetry spans. The pipeline enforces a p95 latency budget and
 supports fail-open-with-flag when the budget is exceeded.
+
+Pipelines can be declared in YAML (:func:`load_pipeline`,
+:meth:`GuardPipeline.from_yaml`), observed through
+:class:`PipelineMetrics` and :class:`FalsePositiveMonitor`, and
+extended across turns with :class:`SessionGuard`.
 """
 
 # Subpackages exported as namespaces.
-from aisafepy.stream import classifiers, forecasters, probes
+from aisafepy.stream import classifiers, config, forecasters, judge, metrics, probes, session
+from aisafepy.stream.config import (
+    ConfigError,
+    GuardRegistry,
+    GuardSpec,
+    PipelineConfig,
+    default_registry,
+    dump_pipeline,
+    load_pipeline,
+    validate_config,
+)
 from aisafepy.stream.deterministic import (
     AhoCorasickGuard,
     BlocklistGuard,
     RegexGuard,
     SchemaGuard,
+)
+from aisafepy.stream.judge import (
+    JudgeTranscript,
+    LLMJudgeGuard,
+    MajorityJudge,
+    StubJudge,
+    parse_verdict,
+)
+from aisafepy.stream.metrics import (
+    FalsePositiveMonitor,
+    FPAlert,
+    GuardStats,
+    LatencyHistogram,
+    PipelineMetrics,
+    decision_rate_summary,
 )
 from aisafepy.stream.pipeline import (
     Context,
@@ -26,20 +56,54 @@ from aisafepy.stream.pipeline import (
     GuardPipeline,
     Tier,
 )
+from aisafepy.stream.session import SessionGuard, SessionState, SessionStore
 
 __all__ = [
-    "AhoCorasickGuard",
-    "BlocklistGuard",
+    # pipeline
     "Context",
     "Guard",
     "GuardPipeline",
+    "Tier",
+    # tier-1 deterministic guards
+    "AhoCorasickGuard",
+    "BlocklistGuard",
     "RegexGuard",
     "SchemaGuard",
-    "Tier",
+    # configuration
+    "ConfigError",
+    "GuardRegistry",
+    "GuardSpec",
+    "PipelineConfig",
+    "default_registry",
+    "dump_pipeline",
+    "load_pipeline",
+    "validate_config",
+    # observability
+    "FPAlert",
+    "FalsePositiveMonitor",
+    "GuardStats",
+    "LatencyHistogram",
+    "PipelineMetrics",
+    "decision_rate_summary",
+    # tier-3 judge
+    "JudgeTranscript",
+    "LLMJudgeGuard",
+    "MajorityJudge",
+    "StubJudge",
+    "parse_verdict",
+    # conversation-level state
+    "SessionGuard",
+    "SessionState",
+    "SessionStore",
+    # adapters and namespaces
     "as_openai_output_guardrail",
     "classifiers",
+    "config",
     "forecasters",
+    "judge",
+    "metrics",
     "probes",
+    "session",
 ]
 
 
