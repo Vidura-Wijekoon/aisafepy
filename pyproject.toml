@@ -97,6 +97,9 @@ all = [
 [project.scripts]
 aisafepy = "aisafepy.cli.main:main"
 
+[project.entry-points.pytest11]
+aisafepy = "aisafepy.testing.pytest_plugin"
+
 [project.urls]
 Homepage = "https://github.com/Vidura-Wijekoon/aisafepy"
 Documentation = "https://github.com/Vidura-Wijekoon/aisafepy#readme"
@@ -157,6 +160,7 @@ markers = [
     "slow: marks tests as slow",
     "gpu: requires a GPU",
     "integration: integration tests touching upstream libs",
+    "aisafepy_slow: slow robustness or corpus-wide checks from aisafepy.testing",
 ]
 
 [tool.mypy]

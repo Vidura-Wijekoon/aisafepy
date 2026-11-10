@@ -111,6 +111,7 @@ _CYRILLIC_TO_LATIN = {
 }
 
 _GREEK_TO_LATIN = {
+    "\u03c2": "c",  # final sigma; NFKC turns the lunate sigma U+03F2 into this
     "\u03b1": "a", "\u03bf": "o", "\u03c1": "p", "\u03bd": "v", "\u03c5": "u", "\u03b9": "i",
     "\u03ba": "k", "\u03c7": "x", "\u03c4": "t", "\u03f2": "c", "\u03f3": "j", "\u03d2": "Y",
     "\u0391": "A", "\u0392": "B", "\u0395": "E", "\u0396": "Z", "\u0397": "H", "\u0399": "I",
