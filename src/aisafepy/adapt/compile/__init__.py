@@ -361,6 +361,17 @@ class Target:
 
         return _DeliberativeTarget(policy=policy, k_shot=k_shot)
 
+    @staticmethod
+    def hashed_classifier(**kwargs: Any) -> Any:
+        """A pure-Python hashed n-gram classifier that trains without torch.
+
+        Unlike :meth:`distill_classifier`, this target always produces a
+        deployable Tier-2 guard on a laptop. See ``docs/hashed-classifier.md``.
+        """
+        from aisafepy.adapt.compile.hashed import hashed_classifier_target
+
+        return hashed_classifier_target(**kwargs)
+
 
 # ---- GuardCompiler ---------------------------------------------------
 
