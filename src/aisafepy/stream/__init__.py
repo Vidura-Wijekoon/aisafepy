@@ -11,6 +11,14 @@ Decisions are emitted as structured ``GuardDecision`` objects with
 OpenTelemetry spans. The pipeline enforces a p95 latency budget and
 supports fail-open-with-flag when the budget is exceeded.
 
+Tier 1 ships a family of dependency-free guards: regex and blocklist
+matching, credential detection (:class:`SecretsGuard`), smuggled
+payload decoding (:class:`EncodingGuard`), tool-call argument policy
+(:class:`ToolCallGuard`), weighted prompt-injection heuristics
+(:class:`InjectionHeuristicGuard`), and the smaller structural guards
+in :mod:`aisafepy.stream.heuristics`. All of them run on text that has
+been through the offset-preserving :class:`Normalizer`.
+
 Pipelines can be declared in YAML (:func:`load_pipeline`,
 :meth:`GuardPipeline.from_yaml`), observed through
 :class:`PipelineMetrics` and :class:`FalsePositiveMonitor`, and
@@ -18,7 +26,21 @@ extended across turns with :class:`SessionGuard`.
 """
 
 # Subpackages exported as namespaces.
-from aisafepy.stream import classifiers, config, forecasters, judge, metrics, probes, session
+from aisafepy.stream import (
+    classifiers,
+    config,
+    encoding,
+    forecasters,
+    heuristics,
+    injection,
+    judge,
+    metrics,
+    normalize,
+    probes,
+    secrets,
+    session,
+    toolcalls,
+)
 from aisafepy.stream.config import (
     ConfigError,
     GuardRegistry,
@@ -35,6 +57,21 @@ from aisafepy.stream.deterministic import (
     RegexGuard,
     SchemaGuard,
 )
+from aisafepy.stream.encoding import INJECTION_PHRASES, EncodingGuard
+from aisafepy.stream.heuristics import (
+    CharsetGuard,
+    JSONDepthGuard,
+    LengthGuard,
+    MarkdownImageExfilGuard,
+    RepetitionGuard,
+    ScriptMixGuard,
+    URLGuard,
+)
+from aisafepy.stream.injection import (
+    DEFAULT_FAMILIES,
+    InjectionHeuristicGuard,
+    PatternFamily,
+)
 from aisafepy.stream.judge import (
     JudgeTranscript,
     LLMJudgeGuard,
@@ -50,13 +87,23 @@ from aisafepy.stream.metrics import (
     PipelineMetrics,
     decision_rate_summary,
 )
+from aisafepy.stream.normalize import Normalized, Normalizer, normalize_for_matching
 from aisafepy.stream.pipeline import (
     Context,
     Guard,
     GuardPipeline,
     Tier,
 )
+from aisafepy.stream.secrets import SecretMatch, SecretsGuard
 from aisafepy.stream.session import SessionGuard, SessionState, SessionStore
+from aisafepy.stream.toolcalls import (
+    PathPolicy,
+    ShellPolicy,
+    ToolCall,
+    ToolCallGuard,
+    URLPolicy,
+    extract_tool_calls,
+)
 
 __all__ = [
     # pipeline
@@ -69,6 +116,32 @@ __all__ = [
     "BlocklistGuard",
     "RegexGuard",
     "SchemaGuard",
+    # tier-1 content guards
+    "CharsetGuard",
+    "EncodingGuard",
+    "INJECTION_PHRASES",
+    "InjectionHeuristicGuard",
+    "DEFAULT_FAMILIES",
+    "PatternFamily",
+    "JSONDepthGuard",
+    "LengthGuard",
+    "MarkdownImageExfilGuard",
+    "RepetitionGuard",
+    "ScriptMixGuard",
+    "SecretMatch",
+    "SecretsGuard",
+    "URLGuard",
+    # tool-call boundary
+    "PathPolicy",
+    "ShellPolicy",
+    "ToolCall",
+    "ToolCallGuard",
+    "URLPolicy",
+    "extract_tool_calls",
+    # normalisation
+    "Normalized",
+    "Normalizer",
+    "normalize_for_matching",
     # configuration
     "ConfigError",
     "GuardRegistry",
@@ -99,11 +172,17 @@ __all__ = [
     "as_openai_output_guardrail",
     "classifiers",
     "config",
+    "encoding",
     "forecasters",
+    "heuristics",
+    "injection",
     "judge",
     "metrics",
+    "normalize",
     "probes",
+    "secrets",
     "session",
+    "toolcalls",
 ]
 
 
