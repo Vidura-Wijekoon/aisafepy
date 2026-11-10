@@ -16,6 +16,14 @@ A ``Policy`` is constructed fluently:
 
 The interpreter (``aisafepy.flow.interpreter``) consults the policy at
 every tool-call evaluation point.
+
+Policies can also be loaded from and saved to YAML / dicts via
+:meth:`Policy.from_yaml`, :meth:`Policy.to_yaml`, and
+:meth:`Policy.from_dict`. Deny rules written as Python lambdas are not
+serializable; use the declarative vocabulary in
+:mod:`aisafepy.flow.serialization` (``provenance_contains``,
+``capability_present``, ``value_matches``, ...) when a policy must
+round-trip through configuration.
 """
 
 from __future__ import annotations
@@ -23,6 +31,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 from aisafepy.flow.taint import Integrity
@@ -74,6 +83,12 @@ class DenyRule:
     tool: str
     when: Callable[..., bool]
     reason: str
+    spec: dict[str, Any] | None = None
+    """The declarative predicate this rule was compiled from, if any.
+
+    Populated by :mod:`aisafepy.flow.serialization` so the rule can be
+    rendered back to YAML. Rules built from Python callables leave this
+    ``None`` and serialize as reason-only placeholders."""
 
 
 @dataclass(frozen=True)
@@ -136,9 +151,23 @@ class Policy:
         self,
         tool: str,
         *,
-        when: Callable[..., bool],
+        when: Callable[..., bool] | dict[str, Any],
         reason: str,
     ) -> Policy:
+        """Register a deny rule for ``tool``.
+
+        ``when`` is either a Python callable receiving the tool's
+        ``*args, **kwargs`` or a declarative predicate dict (see
+        :mod:`aisafepy.flow.serialization`). Declarative predicates are
+        compiled once here and remain serializable.
+        """
+        if isinstance(when, dict):
+            from aisafepy.flow.serialization import compile_predicate
+
+            self.deny_rules.append(
+                DenyRule(tool=tool, when=compile_predicate(when), reason=reason, spec=when)
+            )
+            return self
         self.deny_rules.append(DenyRule(tool=tool, when=when, reason=reason))
         return self
 
@@ -166,10 +195,66 @@ class Policy:
     def is_declassifier(self, tool: str) -> bool:
         return tool in self.declassifications
 
+    def output_label(self, tool: str, *, source: str | None = None) -> SourceLabel:
+        """The label a tool's *return value* should carry.
+
+        Resolution order:
+
+        1. An explicit ``source`` name (or the tool's own name) that has
+           been registered with :meth:`label_source`.
+        2. A declassifier (:meth:`declassify`) yields ``TRUSTED`` output
+           under the provenance ``tool:<name>``; the declassification
+           is what the policy author signed off on.
+        3. Otherwise the output is ``UNTRUSTED`` with provenance
+           ``tool:<name>`` and no capabilities. Unknown tools are
+           treated as untrusted data sources by default.
+        """
+        for candidate in (source, tool):
+            if candidate is not None and candidate in self.sources:
+                return self.sources[candidate]
+        if tool in self.declassifications:
+            return SourceLabel(name=f"tool:{tool}", integrity="TRUSTED", capabilities=frozenset())
+        return SourceLabel(name=f"tool:{tool}", integrity="UNTRUSTED", capabilities=frozenset())
+
+    def lift_output(self, tool: str, value: Any, *, source: str | None = None) -> Any:
+        """Label a tool's return value according to :meth:`output_label`.
+
+        Plain values are wrapped in a ``Tainted``. A value that is already
+        ``Tainted`` keeps its labels, with one exception: if ``tool`` is a
+        registered declassifier its integrity is raised to ``TRUSTED``
+        and the justification is recorded in ``annotations``. That is
+        what declassification means; a declassifier that merely passed
+        its input's label through would be a no-op.
+        """
+        from aisafepy.flow.taint import Tainted, lift
+
+        if isinstance(value, Tainted):
+            rule = self.declassifications.get(tool)
+            if rule is None or value.integrity == "TRUSTED":
+                return value
+            upgraded = value.with_integrity("TRUSTED")
+            upgraded.annotations.update({"declassified_by": tool, "justification": rule.by})
+            return upgraded
+        label = self.output_label(tool, source=source)
+        out = lift(value, source=label.name, integrity=label.integrity,
+                   capabilities=label.capabilities)
+        if tool in self.declassifications:
+            out.annotations.update(
+                {"declassified_by": tool, "justification": self.declassifications[tool].by}
+            )
+        return out
+
+    def covered_tools(self) -> set[str]:
+        """Every tool name mentioned by a requirement, deny rule, or declassifier."""
+        names = set(self.requirements) | set(self.declassifications)
+        names.update(r.tool for r in self.deny_rules)
+        return names
+
     def to_dict(self) -> dict[str, Any]:
         """Render the policy as a dict for logging / serialization.
 
-        ``DenyRule.when`` callables are not serializable; we record their
+        ``DenyRule.when`` callables are not serializable; rules compiled
+        from a declarative ``spec`` include it, others record their
         ``reason`` only.
         """
         return {
@@ -190,12 +275,39 @@ class Policy:
                 for k, v in self.requirements.items()
             },
             "deny_rules": [
-                {"tool": r.tool, "reason": r.reason} for r in self.deny_rules
+                (
+                    {"tool": r.tool, "reason": r.reason, "when": r.spec}
+                    if r.spec is not None
+                    else {"tool": r.tool, "reason": r.reason}
+                )
+                for r in self.deny_rules
             ],
             "declassifications": {
                 k: {"by": v.by} for k, v in self.declassifications.items()
             },
         }
+
+    # ---- serialization conveniences -----------------------------------
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Policy:
+        """Build a policy from the dict shape produced by :meth:`to_dict`."""
+        from aisafepy.flow.serialization import policy_from_dict
+
+        return policy_from_dict(data)
+
+    @classmethod
+    def from_yaml(cls, source: str | Path) -> Policy:
+        """Load a policy from a YAML file path or YAML text."""
+        from aisafepy.flow.serialization import policy_from_yaml
+
+        return policy_from_yaml(source)
+
+    def to_yaml(self, path: str | Path | None = None) -> str:
+        """Serialize to YAML text, optionally writing it to ``path``."""
+        from aisafepy.flow.serialization import policy_to_yaml
+
+        return policy_to_yaml(self, path)
 
 
 # ---- @secure_tool decorator -------------------------------------------

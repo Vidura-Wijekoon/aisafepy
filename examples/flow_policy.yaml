@@ -1,0 +1,72 @@
+# Example IFC policy for a back-office assistant.
+#
+# Load with:
+#     from aisafepy.flow import Policy
+#     policy = Policy.from_yaml("examples/flow_policy.yaml")
+#
+# Lint with:
+#     from aisafepy.flow.lint import lint_policy, format_findings
+#     print(format_findings(lint_policy(policy, tools=[...])))
+
+name: ops-assistant
+version: "1.0"
+description: >
+  Reads mail and CRM data, drafts replies, and moves money only when the
+  decision to do so is traceable to the user's own request.
+
+mode: strict
+
+sources:
+  user_prompt:
+    integrity: TRUSTED
+  crm.lookup:
+    integrity: TRUSTED
+  gmail.read:
+    integrity: UNTRUSTED
+    capabilities: [read.user]
+  web.fetch:
+    integrity: UNTRUSTED
+    capabilities: [read.public, network]
+  vault.get:
+    integrity: UNTRUSTED
+    capabilities: [read.secrets]
+
+requirements:
+  # Sending mail may carry user data, but nothing read from a secret store.
+  send_email:
+    control_flow_integrity: TRUSTED
+    capabilities: [read.user, read.public]
+    arg_max_integrity: UNTRUSTED
+  # Moving money requires every argument to be trusted data.
+  payments.transfer:
+    control_flow_integrity: TRUSTED
+    capabilities: []
+    arg_max_integrity: TRUSTED
+  # Browsing is fine from any control flow; its output is untrusted anyway.
+  web.fetch:
+    control_flow_integrity: UNTRUSTED
+
+deny_rules:
+  - tool: send_email
+    reason: secret-to-external-sink
+    when:
+      capability_present: read.secrets
+  - tool: send_email
+    reason: external-recipient-from-untrusted-data
+    when:
+      all_of:
+        - arg: to
+          arg_integrity_below: TRUSTED
+        - arg: to
+          value_matches: "@(?!corp\\.example$)"
+  - tool: payments.transfer
+    reason: amount-above-manual-review-threshold
+    when:
+      arg: amount
+      value_matches: "^\\s*\\d{6,}"
+
+declassifications:
+  extract_amount:
+    by: >
+      Quarantined model constrained to a numeric JSON schema; output cannot
+      carry instructions. Reviewed by security on 2026-05-11.
