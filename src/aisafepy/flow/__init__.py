@@ -57,6 +57,7 @@ from aisafepy.flow.serialization import (
     policy_to_dict,
     policy_to_yaml,
 )
+from aisafepy.flow.simulate import SimulationReport, explain_path, simulate_policy
 from aisafepy.flow.taint import (
     Tainted,
     collect,
@@ -107,6 +108,10 @@ __all__ = [
     "StepResult",
     "run_plan",
     "validate_plan",
+    # what-if analysis
+    "SimulationReport",
+    "explain_path",
+    "simulate_policy",
     # audit
     "DecisionRecord",
     "DecisionRecorder",
