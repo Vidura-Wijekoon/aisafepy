@@ -27,24 +27,93 @@ Quickstart::
     @secure_tool(capabilities={Capability.WRITE_EXTERNAL})
     def send_email(to: Tainted[str], body: Tainted[str]) -> None:
         ...
+
+Beyond the core builder the package ships a declarative YAML form of
+policies (:func:`policy_from_yaml`), a linter (:func:`lint_policy`), a
+restricted evaluator for planner-emitted action plans
+(:func:`run_plan`), a framework-free adapter for plain callables
+(:func:`secure_callables`), and an audit recorder
+(:class:`DecisionRecorder`).
 """
 
-from aisafepy.flow.interpreter import IFCContext, evaluate_call
+from aisafepy.flow.audit import DecisionRecord, DecisionRecorder
+from aisafepy.flow.dsl import (
+    PlanError,
+    PlanToolError,
+    PlanTrace,
+    StepResult,
+    run_plan,
+    validate_plan,
+)
+from aisafepy.flow.interpreter import IFCContext, IFCViolationError, evaluate_call, ifc_run
+from aisafepy.flow.lint import LintFinding, format_findings, has_errors, lint_policy
 from aisafepy.flow.policy import Capability, Integrity, Policy, secure_tool
-from aisafepy.flow.taint import Tainted, lift, lower
+from aisafepy.flow.serialization import (
+    PredicateError,
+    SerializationError,
+    compile_predicate,
+    policy_from_dict,
+    policy_from_yaml,
+    policy_to_dict,
+    policy_to_yaml,
+)
+from aisafepy.flow.taint import (
+    Tainted,
+    collect,
+    is_tainted,
+    labels_of,
+    lift,
+    lower,
+    map_values,
+    tainted_join,
+)
 
 __all__ = [
+    # core
     "Capability",
     "IFCContext",
+    "IFCViolationError",
     "Integrity",
     "Policy",
     "Tainted",
     "evaluate_call",
-    "ifc_mcp_server",
+    "ifc_run",
     "lift",
     "lower",
-    "secure_agent",
     "secure_tool",
+    # taint helpers
+    "collect",
+    "is_tainted",
+    "labels_of",
+    "map_values",
+    "tainted_join",
+    # declarative policies
+    "PredicateError",
+    "SerializationError",
+    "compile_predicate",
+    "policy_from_dict",
+    "policy_from_yaml",
+    "policy_to_dict",
+    "policy_to_yaml",
+    # linter
+    "LintFinding",
+    "format_findings",
+    "has_errors",
+    "lint_policy",
+    # plan evaluator
+    "PlanError",
+    "PlanToolError",
+    "PlanTrace",
+    "StepResult",
+    "run_plan",
+    "validate_plan",
+    # audit
+    "DecisionRecord",
+    "DecisionRecorder",
+    # adapters
+    "ifc_mcp_server",
+    "secure_agent",
+    "secure_callables",
 ]
 
 
@@ -58,7 +127,8 @@ def secure_agent(agent, policy, *, framework: str | None = None, **kwargs):
 
     The framework is inferred from the agent object's class name when
     ``framework`` is not supplied. Override via the ``framework`` arg
-    to be explicit.
+    to be explicit. Pass ``framework="generic"`` with a mapping of
+    name to callable to use the framework-free adapter.
     """
     fw = framework or _infer_framework(agent)
     if fw == "openai-agents":
@@ -77,10 +147,25 @@ def secure_agent(agent, policy, *, framework: str | None = None, **kwargs):
         from aisafepy.flow.adapters.anthropic_tools import secure_anthropic_tools
 
         return secure_anthropic_tools(agent, policy, **kwargs)
+    if fw == "generic":
+        from aisafepy.flow.adapters.generic import secure_callables as _secure
+
+        return _secure(agent, policy, **kwargs)
     raise ValueError(
         f"Unknown framework {fw!r}. Pass an explicit framework= argument "
-        "(one of 'openai-agents', 'langgraph', 'llamaindex', 'anthropic')."
+        "(one of 'openai-agents', 'langgraph', 'llamaindex', 'anthropic', 'generic')."
     )
+
+
+def secure_callables(tools, policy, **kwargs):
+    """Wrap a mapping of plain Python callables with IFC enforcement.
+
+    Thin re-export of :func:`aisafepy.flow.adapters.generic.secure_callables`
+    so the common no-framework case needs one import.
+    """
+    from aisafepy.flow.adapters.generic import secure_callables as _impl
+
+    return _impl(tools, policy, **kwargs)
 
 
 def ifc_mcp_server(server, policy, **kwargs):
@@ -96,6 +181,8 @@ def ifc_mcp_server(server, policy, **kwargs):
 
 
 def _infer_framework(agent: object) -> str:
+    if isinstance(agent, dict):
+        return "generic"
     qual = type(agent).__module__ + "." + type(agent).__qualname__
     if "agents" in qual.split(".")[0]:  # openai-agents
         return "openai-agents"
