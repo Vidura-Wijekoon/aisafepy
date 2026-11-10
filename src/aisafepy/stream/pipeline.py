@@ -199,30 +199,37 @@ class GuardPipeline:
         return decision
 
     async def _cascade(self, ctx: Context, deadline: float) -> GuardDecision:
+        # A TRANSFORM from an earlier tier (for example PII redaction in
+        # Tier 1) must survive a later tier that merely allows; otherwise
+        # adding a classifier to the cascade would silently switch
+        # redaction off. ``pending`` carries the most recent transform.
         tier1_decision = await self._run_tier(1, self.tier1, ctx)
         if tier1_decision.is_terminal:
             await self._notify(tier1_decision)
             return tier1_decision
         if not self.tier2 and not self.tier3:
             return tier1_decision
+        pending = tier1_decision if tier1_decision.action == Action.TRANSFORM else None
         if time.perf_counter() > deadline:
-            return self._budget_decision(ctx)
+            return _carry(pending, self._budget_decision(ctx))
 
         tier2_decision = await self._run_tier(2, self.tier2, ctx)
         if tier2_decision.is_terminal:
             await self._notify(tier2_decision)
             return tier2_decision
+        if tier2_decision.action == Action.TRANSFORM:
+            pending = tier2_decision
         if not self.tier3:
-            return tier2_decision
+            return _carry(pending, tier2_decision)
         if not _within(self.uncertainty_band, tier2_decision.confidence):
-            return tier2_decision
+            return _carry(pending, tier2_decision)
         if time.perf_counter() > deadline:
-            return self._budget_decision(ctx)
+            return _carry(pending, self._budget_decision(ctx))
 
         tier3_decision = await self._run_tier(3, self.tier3, ctx)
         if tier3_decision.is_terminal:
             await self._notify(tier3_decision)
-        return tier3_decision
+        return _carry(pending, tier3_decision)
 
     async def guard_stream(
         self,
@@ -489,6 +496,13 @@ def _mark_shadow(decision: GuardDecision) -> GuardDecision:
     if decision.evidence.get("shadow") is True:
         return decision
     return decision.model_copy(update={"evidence": {**decision.evidence, "shadow": True}})
+
+
+def _carry(pending: GuardDecision | None, final: GuardDecision) -> GuardDecision:
+    """Prefer an earlier tier's transform over a later tier's plain allow."""
+    if pending is not None and final.action == Action.ALLOW:
+        return pending
+    return final
 
 
 def _within(band: tuple[float, float], conf: float) -> bool:
