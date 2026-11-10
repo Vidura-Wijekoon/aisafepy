@@ -54,13 +54,52 @@ jobs:
         run: python -m ruff check src tests
 
       - name: Run pytest
-        run: python -m pytest -v
+        run: python -m pytest -v --deselect tests/test_adapt_sources.py::test_cluster_failures_groups_similar_inputs
+
+      - name: Run offline examples
+        # The example scripts are living documentation; make sure every
+        # offline one still executes end to end on each Python version.
+        run: |
+          for f in loop_detection stream_cascade flow_openai_agents flow_plan_dsl stream_yaml_config provider_streaming asgi_middleware; do
+            echo "::group::examples/$f.py"
+            python "examples/$f.py" > /dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Verify example pipeline config and policy
+        run: |
+          python -c "from aisafepy.stream import validate_config; import sys; p = validate_config('examples/stream_pipeline.yaml'); print(p); sys.exit(1 if p else 0)"
+          python -c "from aisafepy.flow import policy_from_yaml, lint_policy, format_findings, has_errors; f = lint_policy(policy_from_yaml('examples/flow_policy.yaml')); print(format_findings(f)); raise SystemExit(1 if has_errors(f) else 0)"
 
       - name: Audit dependencies
         run: |
           python -m pip install --upgrade pip-audit
           # Don't fail CI on vulnerabilities, but record them.
           python -m pip-audit --strict || true
+
+  slow:
+    # The clustering test downloads a sentence-transformers model; run it
+    # once, on one interpreter, so the matrix stays fast.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package with adapt extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,adapt]"
+      - name: Run the model-backed clustering test
+        run: python -m pytest -v tests/test_adapt_sources.py::test_cluster_failures_groups_similar_inputs
 
   build:
     runs-on: ubuntu-latest
