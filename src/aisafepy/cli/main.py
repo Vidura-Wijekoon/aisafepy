@@ -61,9 +61,19 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
     subparsers.required = False
 
-    from aisafepy.cli import audit, compile, decisions, manifest, policy, scan
+    from aisafepy.cli import (
+        audit,
+        compile,
+        decisions,
+        evaluate,
+        flow,
+        manifest,
+        pipeline,
+        policy,
+        scan,
+    )
 
-    for module in (scan, policy, audit, manifest, compile, decisions):
+    for module in (scan, policy, pipeline, flow, evaluate, audit, manifest, compile, decisions):
         module.register(subparsers)
 
     return parser

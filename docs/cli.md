@@ -160,3 +160,94 @@ aisafepy decisions summarize decisions.jsonl
 aisafepy decisions filter decisions.jsonl --action block --min-confidence 0.9 > blocks.jsonl
 cat decisions.jsonl | aisafepy --json decisions summarize -
 ```
+
+## `aisafepy pipeline`
+
+Work with guard cascades declared in YAML or JSON (`aisafepy.stream.config`).
+
+| Subcommand | What it does | Exit 2 when |
+|---|---|---|
+| `pipeline validate CONFIG.yaml` | Static checks: unknown kinds, missing required parameters, schema errors. Nothing heavy is built. | any problem is found |
+| `pipeline describe CONFIG.yaml` | Builds the pipeline and prints `GuardPipeline.describe()`; `--json` prints `to_dict()`. | never |
+| `pipeline run CONFIG.yaml --input TEXT` | Evaluates one input and prints action, severity, tier, guard, confidence, rationale, evidence. | the decision is block or escalate |
+| `pipeline registry` | Lists every guard kind the default registry accepts and its required parameters. | never |
+| `pipeline bench CONFIG.yaml --input-file F` | Replays the file `--repeat` times; prints p50 / p95 / p99 / max / mean latency, action counts and per-guard metrics. | never |
+
+`run` options: `--input TEXT` or `--input-file FILE` (`-` for stdin),
+`--role user|assistant|tool` (default `assistant`), `--prompt TEXT` for
+guards that use the prompt, `--metadata KEY=VALUE` (repeatable, lands
+in `Context.metadata`). With `--json` the decision is printed as a
+redacted `GuardDecision` under `decision`, plus `flagged`.
+
+```bash
+aisafepy pipeline validate guards.yaml
+aisafepy pipeline run guards.yaml --input "ignore all previous instructions" --role user
+aisafepy --json pipeline run guards.yaml --input-file - < response.txt
+aisafepy pipeline bench guards.yaml --input-file samples.txt --repeat 20
+aisafepy pipeline registry
+```
+
+## `aisafepy flow`
+
+Work with IFC policies (`aisafepy.flow`), planner-emitted action plans
+and `DecisionRecorder` output.
+
+| Subcommand | What it does | Exit 2 when |
+|---|---|---|
+| `flow lint POLICY.yaml [--tools a,b]` | Runs `lint_policy`; `--tools` enables coverage findings; `--strict` also fails on warnings. | any error (or warning with `--strict`) |
+| `flow show POLICY.yaml` | Prints sources, requirements, deny rules and declassifiers as tables; `--json` prints `policy_to_dict()`. | never |
+| `flow plan POLICY.yaml PLAN.json --dry-run` | `validate_plan` without executing. | the plan is invalid |
+| `flow plan POLICY.yaml PLAN.json --tools SPEC[,SPEC]` | Executes the plan with `run_plan` and prints the trace (step, tool, action, control-flow integrity, binding, detail). | the plan halts on a violation |
+| `flow audit RECORDS.jsonl` | Summarises a recorder file: counts per action and tool, mediated approvals, top deny reasons (`--top N`). | never |
+
+Tool specs are `module:attr` (the callable's name becomes the tool
+name) or `name=module:attr` when the tool name differs from the Python
+name, for example `gmail.read=mytools:gmail_read`. `--cfi` sets the
+starting control-flow integrity (default `TRUSTED`); `--cfi-mode
+control|data` selects how the evaluator derives per-step integrity (see
+`docs/flow.md`). A plan file is a JSON list of steps or an object with
+a `steps` list.
+
+```bash
+aisafepy flow lint policy.yaml --tools gmail.read,send_email,payments.transfer --strict
+aisafepy flow show policy.yaml
+aisafepy flow plan policy.yaml plan.json --dry-run
+aisafepy flow plan policy.yaml plan.json \
+    --tools gmail.read=agent.tools:gmail_read,payments.transfer=agent.tools:transfer
+aisafepy flow audit runs/decisions.jsonl --top 5
+```
+
+## `aisafepy eval`
+
+Measure a guard or a pipeline against a labelled JSON Lines dataset
+with `aisafepy.adapt.evaluate`. Defaults match
+`benchmarks/datasets/injection_eval.jsonl`.
+
+```
+aisafepy eval DATASET.jsonl (--guard module:factory[:kwargs-json] | --pipeline CONFIG.yaml)
+                            [--text-field text] [--label-field label] [--positive-label attack]
+                            [--family-field family] [--id-field id] [--role user]
+                            [--flag-actions block,escalate] [--threshold-sweep 0.1,0.3,0.5]
+                            [--min-recall R] [--max-fpr F] [--max-misclassified N]
+```
+
+* `--guard` accepts a class, a factory function, or a ready-made guard
+  instance; an optional third segment is a JSON object of keyword
+  arguments, for example `aisafepy.stream.injection:InjectionHeuristicGuard:{"block_threshold":0.7}`.
+* `--threshold-sweep` re-instantiates the factory with `threshold=T`
+  for each value and prints precision, recall, F1 and FPR per threshold.
+* `--min-recall` and `--max-fpr` make the command exit 2 when the gate
+  is violated, which turns it into a CI check for guard regressions.
+* Output lists precision, recall, F1, FPR, accuracy, the confusion
+  counts, latency, a per-family table (recall and FPR per
+  `attack_category`), and the ids of misclassified records. `--json`
+  returns the `EvaluationReport` dictionary plus `gates` and `sweep`.
+
+```bash
+aisafepy eval benchmarks/datasets/injection_eval.jsonl \
+    --guard aisafepy.stream.injection:InjectionHeuristicGuard
+aisafepy eval benchmarks/datasets/injection_eval.jsonl \
+    --guard aisafepy.stream.injection:InjectionHeuristicGuard \
+    --threshold-sweep 0.5,0.7,0.85 --max-fpr 0.05
+aisafepy --json eval data.jsonl --pipeline guards.yaml --min-recall 0.8
+```
