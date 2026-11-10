@@ -21,9 +21,15 @@ The implementation is intentionally interpreter-light: rather than
 ship a Python sandbox for the planner's emitted DSL (the full CaMeL
 approach), we inspect the tool-call site itself. This is the same
 shape as RTBAS and is significantly easier to integrate into existing
-agent frameworks. A more aggressive ``aisafepy.flow.dsl`` sub-module
-that ships a restricted-Python evaluator for planner-emitted action
-sequences is on the v0.2 roadmap.
+agent frameworks. The restricted plan evaluator in
+:mod:`aisafepy.flow.dsl` builds on this function to evaluate
+planner-emitted action sequences with data-dependent control-flow
+integrity.
+
+Every outcome (allow, violation, mediated approval) is also reported to
+``IFCContext.on_decision`` when one is installed. That hook is what
+:class:`aisafepy.flow.audit.DecisionRecorder` uses to build an audit
+trail without the adapters having to know about it.
 """
 
 from __future__ import annotations
@@ -48,6 +54,9 @@ _logger = logging.getLogger("aisafepy.flow")
 
 _INTEGRITY_ORDER: tuple[Integrity, ...] = ("TRUSTED", "UNTRUSTED", "QUARANTINED")
 
+DecisionHook = Callable[["GuardDecision | IFCViolation", str], None]
+"""Signature of ``IFCContext.on_decision``: ``(outcome, tool_name)``."""
+
 
 def _meets(actual: Integrity, required: Integrity) -> bool:
     """``actual`` is at least as trusted as ``required``."""
@@ -64,6 +73,13 @@ class IFCContext:
     reasoning depended on; for simpler integrations the adapter may
     pessimistically set it to ``UNTRUSTED`` when *any* untrusted data
     is present in the context window.
+
+    ``on_decision`` is an optional observer invoked with
+    ``(outcome, tool)`` for every evaluation: the ``GuardDecision`` on
+    allow, the ``IFCViolation`` on deny, and additionally the approving
+    ``GuardDecision`` when a mediator overrides a violation. Exceptions
+    raised by the hook are logged and swallowed; observability must
+    never change enforcement.
     """
 
     control_flow_integrity: Integrity = "TRUSTED"
@@ -71,9 +87,19 @@ class IFCContext:
     """A (source, op, dest) trail used to render an auditable taint
     chain in violation evidence."""
     user_metadata: dict[str, Any] = field(default_factory=dict)
+    on_decision: DecisionHook | None = field(default=None, repr=False, compare=False)
 
     def record(self, source: str, op: str, dest: str) -> None:
         self.taint_chain.append((source, op, dest))
+
+    def emit(self, outcome: GuardDecision | IFCViolation, tool: str) -> None:
+        """Deliver ``outcome`` to ``on_decision`` without letting it raise."""
+        if self.on_decision is None:
+            return
+        try:
+            self.on_decision(outcome, tool)
+        except Exception as exc:
+            _logger.warning("on_decision hook raised for tool=%r; ignoring: %r", tool, exc)
 
 
 def evaluate_call(
@@ -123,7 +149,7 @@ def evaluate_call(
                     required_capabilities=requirement.capabilities,
                     taint_chain=tuple(context.taint_chain),
                 )
-                return _handle_violation(v, policy, span, mediator)
+                return _handle_violation(v, policy, span, mediator, context)
 
             if not _meets(integrity, requirement.arg_max_integrity):
                 v = IFCViolation(
@@ -137,7 +163,7 @@ def evaluate_call(
                     required_capabilities=requirement.capabilities,
                     taint_chain=tuple(context.taint_chain),
                 )
-                return _handle_violation(v, policy, span, mediator)
+                return _handle_violation(v, policy, span, mediator, context)
 
             forbidden = caps - requirement.capabilities
             if forbidden:
@@ -151,7 +177,7 @@ def evaluate_call(
                     required_capabilities=requirement.capabilities,
                     taint_chain=tuple(context.taint_chain),
                 )
-                return _handle_violation(v, policy, span, mediator)
+                return _handle_violation(v, policy, span, mediator, context)
 
         # 3. Tool-declared metadata (from @secure_tool).
         if metadata is not None:
@@ -167,7 +193,7 @@ def evaluate_call(
                     required_capabilities=metadata.capabilities,
                     taint_chain=tuple(context.taint_chain),
                 )
-                return _handle_violation(v, policy, span, mediator)
+                return _handle_violation(v, policy, span, mediator, context)
 
         # 4. Custom deny_if rules.
         for rule in policy.deny_rules_for(tool):
@@ -190,7 +216,7 @@ def evaluate_call(
                     required_capabilities=requirement.capabilities if requirement else frozenset(),
                     taint_chain=tuple(context.taint_chain),
                 )
-                return _handle_violation(v, policy, span, mediator)
+                return _handle_violation(v, policy, span, mediator, context)
 
         # 5. Allowed.
         decision = GuardDecision.allow(
@@ -206,6 +232,7 @@ def evaluate_call(
             },
         )
         attach_decision(span, decision)
+        context.emit(decision, tool)
         return decision
 
 
@@ -214,9 +241,12 @@ def _handle_violation(
     policy: Policy,
     span: Any,
     mediator: Callable[[IFCViolation], bool] | None,
+    context: IFCContext | None = None,
 ) -> GuardDecision:
     """Either raise (strict) or call the mediator (mediated)."""
     attach_violation(span, v)
+    if context is not None:
+        context.emit(v, v.tool)
     if policy.mode == "mediated" and mediator is not None:
         approved = False
         with contextlib.suppress(Exception):
@@ -229,6 +259,8 @@ def _handle_violation(
                 evidence={"mediation": "approved", "violation_id": v.violation_id},
             )
             attach_decision(span, decision)
+            if context is not None:
+                context.emit(decision, v.tool)
             return decision
     # Strict: raise. The ``decision`` attribute lets the adapter render
     # the violation as a structured GuardDecision if it prefers.
@@ -249,11 +281,31 @@ class IFCViolationError(RuntimeError):
 
 
 @contextlib.contextmanager
-def ifc_run(policy: Policy, **kwargs) -> Iterator[IFCContext]:
-    """Context manager that yields a fresh ``IFCContext`` per agent run."""
+def ifc_run(
+    policy: Policy,
+    *,
+    recorder: Any | None = None,
+    **kwargs: Any,
+) -> Iterator[IFCContext]:
+    """Context manager that yields a fresh ``IFCContext`` per agent run.
+
+    ``recorder`` is any callable with the :data:`DecisionHook` signature
+    (typically a :class:`aisafepy.flow.audit.DecisionRecorder`). It is
+    installed as the context's ``on_decision`` hook and, if it exposes a
+    ``flush()`` method, flushed when the run exits, including on error.
+    Remaining keyword arguments initialise the ``IFCContext``.
+    """
     ctx = IFCContext(**kwargs)
+    if recorder is not None:
+        if not callable(recorder):
+            raise TypeError("recorder must be callable with (outcome, tool)")
+        ctx.on_decision = recorder
     try:
         yield ctx
     finally:
-        # Currently a no-op; future versions may flush a structured audit log here.
-        pass
+        flush = getattr(recorder, "flush", None)
+        if callable(flush):
+            try:
+                flush()
+            except Exception as exc:  # pragma: no cover - defensive
+                _logger.warning("recorder flush failed: %r", exc)
