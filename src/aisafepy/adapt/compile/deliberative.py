@@ -35,7 +35,7 @@ class _DeliberativeTarget:
             return None
 
         policy_text = ""
-        policy_path = Path(self.policy) if isinstance(self.policy, (str, Path)) else None
+        policy_path = Path(self.policy) if isinstance(self.policy, str | Path) else None
         if policy_path is not None and policy_path.exists():
             policy_text = policy_path.read_text(encoding="utf-8")
 

@@ -52,9 +52,9 @@ def _set_attrs(span: Span, attrs: dict[str, Any]) -> None:
     for k, v in attrs.items():
         if v is None:
             continue
-        if isinstance(v, (str, bool, int, float)):
+        if isinstance(v, str | bool | int | float):
             span.set_attribute(k, v)
-        elif isinstance(v, (list, tuple)) and all(isinstance(x, (str, int, float, bool)) for x in v):
+        elif isinstance(v, list | tuple) and all(isinstance(x, str | int | float | bool) for x in v):
             span.set_attribute(k, list(v))
         else:
             # Fall back to JSON for complex evidence dicts.
@@ -201,7 +201,7 @@ def redact(value, _depth: int = 0):
             else:
                 out[k] = redact(v, _depth + 1)
         return out
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return [redact(v, _depth + 1) for v in value]
     if isinstance(value, str) and len(value) > 4096:
         return value[:4093] + "..."
