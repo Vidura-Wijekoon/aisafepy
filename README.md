@@ -182,6 +182,9 @@ scripts and CI:
 ```bash
 aisafepy scan --pii --redact src/ docs/            # Tier-1 scan; exit 2 on a block
 aisafepy policy check policy.yaml --input "..."     # evaluate a PolicyDocument
+aisafepy pipeline run guards.yaml --input "..."     # run a YAML cascade on one input
+aisafepy flow lint policy.yaml                      # lint an IFC policy
+aisafepy eval dataset.jsonl --pipeline guards.yaml  # precision / recall / FPR on labelled data
 aisafepy manifest pin tools.json -o manifest.json   # pin MCP tool schemas
 aisafepy manifest verify tools.json manifest.json   # fail on drift or poisoning
 aisafepy audit verify audit.jsonl                   # check the hash chain
@@ -197,12 +200,14 @@ Reference: [docs/cli.md](docs/cli.md).
 |---|---|
 | `flow` | `Tainted[T]` lattice, fluent `Policy` builder, YAML policies with declarative deny predicates, `lint_policy`, `run_plan` restricted DSL, `DecisionRecorder` audit hook, adapters for OpenAI Agents / LangGraph / LlamaIndex / Anthropic / generic callables / MCP (with manifest pinning and parameter-description screening) |
 | `stream` Tier 1 | `RegexGuard` (Luhn and octet validated PII, all-match redaction), `SecretsGuard` (20 credential formats, entropy fallback), `EncodingGuard` (base64 / hex / rot13 / Braille / zero-width payloads), `ToolCallGuard` (URL, path, shell policies), `InjectionHeuristicGuard` (nine weighted families), `Normalizer`, length / repetition / script-mix / markdown-exfil / JSON-depth guards |
-| `stream` Tier 2-3 | HF classifiers, StreamGuard / SCM / Kelp forecasters, linear and MLP activation probes, `LLMJudgeGuard` with `MajorityJudge`, `SessionGuard` for multi-turn risk |
-| `stream` ops | YAML config and `GuardRegistry`, shadow guards, per-tier timeouts, `PipelineMetrics` with Prometheus output, `FalsePositiveMonitor`, OpenAI / Anthropic / ASGI / LangChain / LlamaIndex adapters |
-| `adapt` | PyRIT / Garak / Inspect / Promptfoo / DeepEval / JSONL / CSV sources, clustering, five compile targets, negative-pool regex precision, persistent `CompilationReport`, `evaluate_guard`, `CanaryController` with FP-budget rollback, HMAC-signed `AuditLog` |
+| `stream` PII | `PIIGuard` with checksum-validated detectors (IBAN mod-97, Luhn cards with brand, Verhoeff Aadhaar, Sri Lanka NIC, UK NINO, US SSN, Canada SIN, Australia TFN, passport MRZ check digits, international phone numbers, dates of birth) and country packs |
+| `stream` Tier 2-3 | `HashedNGramClassifierGuard` (pure-Python, trains without torch), HF classifiers, StreamGuard / SCM / Kelp forecasters, linear and MLP activation probes, `LLMJudgeGuard` with `MajorityJudge`, `SessionGuard` for multi-turn risk |
+| `stream` ops | YAML config and `GuardRegistry`, `DecisionCache`, shadow guards, per-tier timeouts, `PipelineMetrics` with Prometheus output, `FalsePositiveMonitor`, OpenAI / Anthropic / ASGI / LangChain (runnable, callbacks) / LlamaIndex adapters |
+| `adapt` | PyRIT / Garak / Inspect / Promptfoo / DeepEval / JSONL / CSV / OTLP-trace / decision-log sources, clustering with a pure-Python lexical fallback, six compile targets including a hashed classifier that trains on a laptop, negative-pool regex precision, persistent `CompilationReport`, `evaluate_guard`, `CanaryController` with FP-budget rollback, HMAC-signed `AuditLog` |
 | `core` | `GuardDecision` / `IFCViolation`, budgets (iteration, token, dollar with pricing, wall-clock, rate) and `BudgetSet`, loop detection, policy-document DSL, decision sinks, OpenTelemetry conventions, key- and value-based credential redaction |
 | `contrib` | Llama Guard 4, ShieldGemma, Prompt Guard 2, llm-guard, Presidio, Lakera, OpenAI Moderation, Azure Content Safety |
-| tooling | `aisafepy` CLI, offline benchmark suite with a 178-record labelled injection dataset, runnable examples, 1,100+ offline tests |
+| `testing` | Toolkit for your own test suite: assertions, an attack mutation engine (encodings, homoglyphs, zero-width, paraphrase, document framing), robustness reports, a pytest plugin, and `simulate_policy` what-if analysis for flow policies |
+| tooling | `aisafepy` CLI (`scan`, `policy`, `pipeline`, `flow`, `eval`, `audit`, `manifest`, `compile`, `decisions`), offline benchmark suite with a 178-record labelled injection dataset, runnable examples, 1,500+ offline tests |
 
 ## Layout
 
@@ -217,6 +222,7 @@ src/aisafepy/
 ├── adapt/          # Gap 3. Eval-to-guardrail compiler: sources, cluster, canary, evaluate, governance
 │   └── compile/    # classifier, regex, policy, steering, deliberative
 ├── contrib/        # thin wrappers around upstream guardrail models and APIs
+├── testing/        # assertions, mutation engine, robustness reports, pytest plugin
 └── cli/            # the aisafepy command
 benchmarks/         # offline latency / detection / overhead benchmarks + labelled dataset
 docs/               # guides (below)
@@ -233,6 +239,9 @@ examples/           # runnable, offline demos; examples/safeops is the hosted de
 | [docs/core.md](docs/core.md) | Decision schema, budgets and pricing, loop detection, policy YAML, sinks |
 | [docs/integrations.md](docs/integrations.md) | Which adapter to use at which boundary, with snippets |
 | [docs/cli.md](docs/cli.md) | Every command, option and exit code |
+| [docs/testing.md](docs/testing.md) | Assertions, mutation engine, robustness reports, pytest plugin, flow simulator |
+| [docs/pii.md](docs/pii.md) | PII detectors, validators, country packs, redaction |
+| [docs/hashed-classifier.md](docs/hashed-classifier.md) | The pure-Python classifier target: when to use it, limits |
 | [docs/architecture.md](docs/architecture.md) | Module layering and data flow |
 | [docs/threat-model.md](docs/threat-model.md) | Assets, adversaries, OWASP LLM Top 10 mapping, what is out of scope |
 | [docs/observability.md](docs/observability.md) | Span attributes, log events, redaction rules |

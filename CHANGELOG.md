@@ -102,6 +102,36 @@ changing the three-module design.
 
 **`contrib`**: `OpenAIModerationGuard`, `AzureContentSafetyGuard`.
 
+**`testing`** (new package)
+
+- Assertions (`assert_blocks`, `assert_allows`, `assert_transforms`,
+  `assert_decision`, `assert_policy_denies`), `run_guard`, and a
+  `GuardTestCase` mixin.
+- An attack mutation engine (base64, hex, rot13, percent-encoding,
+  homoglyphs, zero-width, leetspeak, case, whitespace, delimiter
+  wrapping, document framing, many-shot, paraphrase, composition).
+- `robustness_report`, `coverage_matrix`, a built-in labelled corpus
+  and a pytest plugin with fixtures and the `aisafepy_slow` marker.
+
+**Second wave**
+
+- `stream.pii.PIIGuard`: checksum-validated detectors with country
+  packs (IBAN, payment cards, phone numbers, SSN, NINO, Sri Lanka
+  NIC, Aadhaar, PAN, SIN, TFN, passport MRZ, dates of birth, IPv6,
+  MAC, street addresses).
+- `stream.hashed_classifier.HashedNGramClassifierGuard`, a
+  pure-Python Tier-2 classifier, and `Target.hashed_classifier`,
+  which the canary can deploy without torch.
+- `stream.cache`: `DecisionCache`, `CachedGuard`, `cached_pipeline`.
+- `flow.simulate_policy` / `explain_path` what-if analysis;
+  `flow.adapters.langchain_tools`; LangChain streaming callback
+  handlers in `stream.adapters.langchain_callbacks`.
+- `adapt.OTLPSpanSource` and `DecisionLogSource`, feeding the
+  library's own telemetry back into the compiler; a pure-Python
+  TF-IDF clustering path (`lexical_cluster`, `method="tfidf"`).
+- CLI: `pipeline` (validate, describe, run, registry, bench), `flow`
+  (lint, show, plan, audit) and `eval` command groups.
+
 **Tooling and project**
 
 - The `aisafepy` command-line interface (`scan`, `policy`, `audit`,
@@ -127,6 +157,20 @@ changing the three-module design.
   deferred training spec when it had fallen back to self-contrast.
 - The MCP description screen missed "ignore all previous instructions".
 - `AuditLog` on Windows locked byte 0, which blocked concurrent reads.
+- A transform from an earlier tier (PII redaction) was discarded when
+  a later tier allowed, so adding a classifier switched redaction off.
+- The canary stored `(guard, name)` tuples in `shadow_guards`, which
+  the pipeline could not evaluate.
+- The normaliser did not fold the Greek final sigma that NFKC
+  produces from the lunate sigma, so a homoglyph `c` could survive.
+- `cluster_failures(method="tfidf")` attempted a model download
+  before falling back.
+
+### Security
+
+- Test fixtures for the secret detectors are now assembled at runtime;
+  no credential-shaped literal exists in the tree or its history, and
+  `tests/test_no_credential_shaped_literals.py` enforces it.
 
 ## [0.1.0] - 2026-05-11
 

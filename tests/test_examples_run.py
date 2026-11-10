@@ -31,6 +31,8 @@ OFFLINE_EXAMPLES = [
     "stream_yaml_config.py",
     "provider_streaming.py",
     "asgi_middleware.py",
+    "adapt_offline_compile.py",
+    "core_budgets_and_loops.py",
 ]
 
 
