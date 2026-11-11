@@ -175,7 +175,7 @@ def test_declassified_amount_still_blocked_by_cfi_and_passes_when_trusted():
 
 
 def test_conditional_step_contributes_to_cfi_and_skips():
-    tools, calls = _tools()
+    tools, _calls = _tools()
     policy = _policy()
     plan = [
         {"call": "gmail.read", "args": {"query": "q"}, "bind": "mail"},
@@ -260,7 +260,7 @@ def test_secure_tool_metadata_and_recorder_hook_are_used():
 
 
 def test_mediated_mode_uses_mediator():
-    tools, calls = _tools()
+    tools, _calls = _tools()
     policy = _policy().with_mode("mediated")
     plan = [
         {"call": "gmail.read", "args": {"query": "q"}, "bind": "mail"},

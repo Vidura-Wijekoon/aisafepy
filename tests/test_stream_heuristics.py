@@ -47,7 +47,7 @@ def test_length_guard_without_limits_allows_everything():
 
 def test_tail_period_repeat():
     assert tail_period_repeat("go and then and then and then and then") == (" and then", 4)
-    unit, count = tail_period_repeat("no repetition here at all")
+    _unit, count = tail_period_repeat("no repetition here at all")
     assert count == 1
 
 

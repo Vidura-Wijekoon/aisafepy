@@ -206,7 +206,7 @@ def defence_layers(tool: str, kwargs: dict, policy, ctx: IFCContext) -> list[dic
     from aisafepy.flow.taint import join_all
 
     tainted = [v for v in kwargs.values() if isinstance(v, Tainted)]
-    prov, caps, integ = join_all(tainted)
+    _prov, caps, integ = join_all(tainted)
     req = policy.requirement(tool)
     out: list[dict] = []
 

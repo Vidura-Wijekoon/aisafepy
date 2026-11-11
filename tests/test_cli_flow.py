@@ -109,7 +109,7 @@ def test_lint_clean_policy_exits_0(policy):
 
 
 def test_lint_reports_uncovered_tools(policy):
-    code, out, _ = invoke("--json", "flow", "lint", str(policy), "--tools", "send_email,shell.exec")
+    _code, out, _ = invoke("--json", "flow", "lint", str(policy), "--tools", "send_email,shell.exec")
     payload = json.loads(out)
     codes = {f["code"] for f in payload["findings"]}
     assert "uncovered-tool" in codes

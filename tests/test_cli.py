@@ -185,7 +185,7 @@ def test_version_flag():
 
 
 def test_unknown_command_is_usage_error_not_exception():
-    code, out, err = run("frobnicate")
+    code, _out, err = run("frobnicate")
     assert code == 1
     assert "invalid choice" in err or "usage" in err
 
