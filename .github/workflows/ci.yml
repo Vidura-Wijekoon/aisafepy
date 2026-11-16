@@ -35,7 +35,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
@@ -87,7 +87,7 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
         with:
           egress-policy: audit
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f
@@ -110,7 +110,7 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
         with:
           egress-policy: audit
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f
