@@ -62,7 +62,7 @@ jobs:
           fi
           echo "self-contained: $(du -h _site/index.html | cut -f1)"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
